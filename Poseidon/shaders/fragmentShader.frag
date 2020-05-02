@@ -1,12 +1,10 @@
 #version 430 core
-in vec2 texCoords;
-out vec4 color;
 
-uniform sampler2D text;
-layout (location = 5) uniform vec3 textColor;
+out vec4 FragColor;
+
+uniform vec4 ourColor;
 
 void main()
-{    
-    vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, texCoords).r);
-    color = vec4(textColor, 1.0) * sampled;
-}  
+{
+	FragColor = ourColor;
+}
