@@ -1,18 +1,33 @@
 #pragma once
 
+#include <iostream>
+#include <filesystem>
+#include <sstream>
+#include <fstream>
 #include <gl/glew.h>
-#include "Shader.h"
 
 class ShaderProgram
 {
 public:
 	ShaderProgram();
+	ShaderProgram(const char* vertexFilePath, const char* fragmentFilePath);
 	~ShaderProgram();
 
-	void linkShaderToProgram(Shader shader);
+	GLuint getID();
+
+	void draw();
+
+	void bind();
+	void cleanUp();
 
 private:
 
-	GLuint shaderProgramID;
+	unsigned int VAO;
+	unsigned int VBO;
+
+	GLuint ID;
+	
+	GLuint createShader(const char* filePath, GLenum type);
+
 };
 
