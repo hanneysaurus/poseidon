@@ -13,7 +13,11 @@ public:
 	ShaderProgram(const char* vertexFilePath, const char* fragmentFilePath);
 	~ShaderProgram();
 
+	void addGemoetryShader(const char* geometryFilePath);
+
 	GLuint getID();
+	unsigned int getVAO();
+	unsigned int getVBO();
 
 	void draw();
 
@@ -24,6 +28,7 @@ private:
 
 	unsigned int VAO;
 	unsigned int VBO;
+	unsigned int EBO;
 
 	GLuint ID;
 	

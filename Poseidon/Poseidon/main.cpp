@@ -1,9 +1,11 @@
 #define WIN32_LEAN_AND_MEAN
+#define STB_IMAGE_IMPLEMENTATION
 
 #include <iostream>
 #include "windows.h"
 
 #include "ShaderProgram.h"
+#include "Texture.h"
 
 #include "GLFW/glfw3.h"
 #include "gl/glew.h"
@@ -11,6 +13,7 @@
 #include <gl/GLU.h>		//OpenGL utilities
 #include "gl/glut.h"
 #include "glm/glm.hpp"
+
 
 // --------------------------------------------------------
 // FUNCTION DECLARATIONS
@@ -37,17 +40,7 @@ GLFWwindow* WINDOW;
 static float _zoom = 60.0f;
 
 ShaderProgram shaderProgram;
-//unsigned int VAO, VBO;
-/*float square_vertices[] =
-{
-	0.5f, -0.5f, 0.0,
-	0.5, 0.5, 0.0,
-	-0.5, 0.5, 0.0,
-
-	0.5f, -0.5f, 0.0,
-	-0.5, -0.5, 0.0,
-	-0.5, 0.5, 0.0
-};*/
+Texture testTex;
 
 int main(int argc, char* argv[])
 {
@@ -61,6 +54,7 @@ int main(int argc, char* argv[])
 	// Main loop
 	while (!glfwWindowShouldClose(WINDOW))
 	{
+		glfwPollEvents();
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -69,7 +63,6 @@ int main(int argc, char* argv[])
 
 		// Update Screen
 		glfwSwapBuffers(WINDOW);
-		glfwPollEvents();
 
 	}
 
@@ -107,9 +100,11 @@ void setUpLibraries(void) {
 
 }
 void setUpShaders(void) {
-	shaderProgram = ShaderProgram("../shaders/vertexShader.vert", "../shaders/fragmentShader.frag");
 
+	shaderProgram = ShaderProgram("../shaders/vertexShader.vert", "../shaders/fragmentShader.frag");
 	shaderProgram.bind();
+
+	testTex = Texture("../textures/container.jpg");
 	
 }
 
@@ -124,17 +119,13 @@ void render(void) {
 
 void renderSquare() {
 
+	testTex.use();
+
 	glUseProgram(shaderProgram.getID());
 
 	//set Uniforms
-	float timeValue = glfwGetTime();
-	float greenValue = glm::sin(timeValue) / 2.0f + 0.5f;
-
-	glUniform4f(glGetUniformLocation(shaderProgram.getID(), "ourColor"), 0.0f, greenValue, 0.0f, 1.0f);
 
 	shaderProgram.draw();
-
-	glUseProgram(0);
 }
 
 void cleanUp() {

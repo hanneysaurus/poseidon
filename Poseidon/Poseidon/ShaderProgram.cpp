@@ -1,14 +1,16 @@
 #include "ShaderProgram.h"
 
-float square_vertices[] =
-{
-	0.5f, -0.5f, 0.0,
-	0.5, 0.5, 0.0,
-	-0.5, 0.5, 0.0,
+float square_vertices[] = {
+	// positions          // colors           // texture coords
+	 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+	 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+	-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+	-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left
+};
 
-	0.5f, -0.5f, 0.0,
-	-0.5, -0.5, 0.0,
-	-0.5, 0.5, 0.0
+unsigned int square_indices[] = {
+	0,1,3,
+	1,2,3
 };
 
 ShaderProgram::ShaderProgram()
@@ -45,34 +47,75 @@ ShaderProgram::~ShaderProgram()
 
 }
 
+void ShaderProgram::addGemoetryShader(const char* geometryFilePath)
+{
+	GLuint geometryShader = createShader(geometryFilePath, GL_GEOMETRY_SHADER);
+	glAttachShader(this->ID, geometryShader);
+	glLinkProgram(this->ID);
+
+	int success;
+	char infoLog[512];
+	glGetProgramiv(this->ID, GL_LINK_STATUS, &success);
+	if (!success)
+	{
+
+		glGetProgramInfoLog(this->ID, 512, NULL, infoLog);
+		std::cout << "ERROR: Shader Linking failed \n" << infoLog << std::endl;
+	}
+
+	glDeleteShader(geometryShader);
+
+}
+
 GLuint ShaderProgram::getID()
 {
 	return this->ID;
 }
 
+unsigned int ShaderProgram::getVAO()
+{
+	return this->VAO;
+}
+
+unsigned int ShaderProgram::getVBO()
+{
+	return this->VBO;
+}
+
 void ShaderProgram::draw() {
-	glDrawArrays(GL_TRIANGLES, 0, sizeof(square_vertices));
+	glBindVertexArray(this->VAO);
+	//glDrawArrays(GL_TRIANGLES, 0, sizeof(square_indices));
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 void ShaderProgram::bind()
 {
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
+	glGenVertexArrays(1, &this->VAO);
+	glGenBuffers(1, &this->VBO);
+	glGenBuffers(1, &this->EBO);
 
 	glBindVertexArray(VAO);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(square_vertices), square_vertices, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(square_indices), square_indices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
-	glBindVertexArray(VAO);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
 }
 
 void ShaderProgram::cleanUp() {
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
+	glDeleteVertexArrays(1, &this->VAO);
+	glDeleteBuffers(1, &this->VBO);
+	glDeleteBuffers(1, &this->EBO);
 	glDeleteProgram(this->ID);
 }
 
