@@ -9,8 +9,16 @@ float square_vertices[] = {
 };
 
 unsigned int square_indices[] = {
-	0,1,3,
-	1,2,3
+	0,1,3,	//first triangle
+	1,2,3	//second triangle
+};
+
+float testingWaters[] = {
+		  //position		//color
+		  0.5f,  0.5f,		1.0f, 0.0f, 0.0f, // top-left
+		  0.5f, -0.5f,		0.0f, 1.0f, 0.0f, // top-right
+		 -0.5f,  0.5f,		0.0f, 0.0f, 1.0f, // bottom-right
+		 -0.5f, -0.5f,		1.0f, 1.0f, 0.0f  // bottom-left
 };
 
 ShaderProgram::ShaderProgram()
@@ -84,13 +92,13 @@ unsigned int ShaderProgram::getVBO()
 
 void ShaderProgram::draw() {
 	glBindVertexArray(this->VAO);
-	//glDrawArrays(GL_TRIANGLES, 0, sizeof(square_indices));
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	glDrawArrays(GL_POINTS, 0, 4);
+	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 void ShaderProgram::bind()
 {
-	glGenVertexArrays(1, &this->VAO);
+	/*glGenVertexArrays(1, &this->VAO);
 	glGenBuffers(1, &this->VBO);
 	glGenBuffers(1, &this->EBO);
 
@@ -109,7 +117,18 @@ void ShaderProgram::bind()
 	glEnableVertexAttribArray(1);
 
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-	glEnableVertexAttribArray(2);
+	glEnableVertexAttribArray(2);*/
+
+	glGenBuffers(1, &VBO);
+	glGenVertexArrays(1, &VAO);
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(testingWaters), &testingWaters, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+	glBindVertexArray(0);
 }
 
 void ShaderProgram::cleanUp() {

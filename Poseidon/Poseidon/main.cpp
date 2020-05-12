@@ -59,6 +59,9 @@ int main(int argc, char* argv[])
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_SRC_ALPHA);
+			
 		render();
 
 		// Update Screen
@@ -102,6 +105,7 @@ void setUpLibraries(void) {
 void setUpShaders(void) {
 
 	shaderProgram = ShaderProgram("../shaders/vertexShader.vert", "../shaders/fragmentShader.frag");
+	shaderProgram.addGemoetryShader("../shaders/computeShader.geom");
 	shaderProgram.bind();
 
 	testTex = Texture("../textures/container.jpg");
