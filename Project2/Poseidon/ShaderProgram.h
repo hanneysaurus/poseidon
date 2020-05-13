@@ -10,10 +10,13 @@ class ShaderProgram
 {
 public:
 	ShaderProgram();
+	ShaderProgram(const char* computeFilePath);
 	ShaderProgram(const char* vertexFilePath, const char* fragmentFilePath);
 	~ShaderProgram();
 
-	void addGemoetryShader(const char* geometryFilePath);
+	void addComputeShader(const char* computeFilePath);
+
+	void addGeometryShader(const char* geometryFilePath);
 
 	GLuint getID();
 	unsigned int getVAO();

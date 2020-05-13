@@ -14,15 +14,22 @@ unsigned int square_indices[] = {
 };
 
 float testingWaters[] = {
-		  //position		//color
-		  0.5f,  0.5f,		1.0f, 0.0f, 0.0f, // top-left
-		  0.5f, -0.5f,		0.0f, 1.0f, 0.0f, // top-right
-		 -0.5f,  0.5f,		0.0f, 0.0f, 1.0f, // bottom-right
-		 -0.5f, -0.5f,		1.0f, 1.0f, 0.0f  // bottom-left
+		  //position			//uv coords
+		  0.5f, 0.5f, 0.0f,		1.0f, 1.0f, // top-right
+		  0.5f,	-0.5f, 0.0f,	1.0f, 0.0f, // bottom-right
+		 -0.5f, 0.5f, 0.0f,		0.0f, 1.0f, // top-left
+		 -0.5f, -0.5f, 0.0f,	0.0f, 0.0f, // bottom-left
 };
 
 ShaderProgram::ShaderProgram()
 {
+
+}
+
+ShaderProgram::ShaderProgram(const char* computeFilePath)
+{
+	this->ID = glCreateProgram();
+	addComputeShader(computeFilePath);
 }
 
 ShaderProgram::ShaderProgram(const char* vertexFilePath, const char* fragmentFilePath)
@@ -55,7 +62,27 @@ ShaderProgram::~ShaderProgram()
 
 }
 
-void ShaderProgram::addGemoetryShader(const char* geometryFilePath)
+void ShaderProgram::addComputeShader(const char* computeFilePath)
+{
+	GLuint computeShader = createShader(computeFilePath, GL_COMPUTE_SHADER);
+	glAttachShader(this->ID, computeShader);
+	glLinkProgram(this->ID);
+
+	int success;
+	char infoLog[512];
+	glGetProgramiv(this->ID, GL_LINK_STATUS, &success);
+	if (!success)
+	{
+
+		glGetProgramInfoLog(this->ID, 512, NULL, infoLog);
+		std::cout << "ERROR: Shader Linking failed \n" << infoLog << std::endl;
+	}
+
+	glDeleteShader(computeShader);	
+
+}
+
+void ShaderProgram::addGeometryShader(const char* geometryFilePath)
 {
 	GLuint geometryShader = createShader(geometryFilePath, GL_GEOMETRY_SHADER);
 	glAttachShader(this->ID, geometryShader);
@@ -92,7 +119,7 @@ unsigned int ShaderProgram::getVBO()
 
 void ShaderProgram::draw() {
 	glBindVertexArray(this->VAO);
-	glDrawArrays(GL_POINTS, 0, 4);
+	glDrawArrays(GL_QUADS, 0, 4);
 	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
@@ -122,8 +149,10 @@ void ShaderProgram::bind()
 	glGenBuffers(1, &VBO);
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
+
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(testingWaters), &testingWaters, GL_STATIC_DRAW);
+
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
 	glEnableVertexAttribArray(1);

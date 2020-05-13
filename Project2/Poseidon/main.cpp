@@ -16,6 +16,27 @@
 
 
 // --------------------------------------------------------
+// ERROR LOGGING
+#define ASSERT(x) if ((!x)) __debugbreak();
+#define GLCall(x) GLClearError();\
+    x;\
+    ASSERT(GLLogCall(#x, __FILE__, __LINE__))
+
+
+static void GLClearError(){
+    while (glGetError() != GL_NO_ERROR);
+}
+
+static bool GLLogCall(const char* function, const char* file, int line) {
+    while (GLenum error = glGetError()){
+        std::cout << "openGL error: (" << error << "): function" << function  << std::endl << " file: " << file <<  std::endl << " line: " << line  << std::endl;
+        return false;
+    }
+    return true;
+}
+
+
+// --------------------------------------------------------
 // FUNCTION DECLARATIONS
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -40,6 +61,8 @@ GLFWwindow* WINDOW;
 static float _zoom = 60.0f;
 
 ShaderProgram shaderProgram;
+ShaderProgram computeProgram;
+unsigned int read_write_texture;
 Texture testTex;
 
 int main(int argc, char* argv[])
@@ -48,7 +71,7 @@ int main(int argc, char* argv[])
 	setUpLibraries();
 
 	setCallbackFunctions();
-
+	
 	setUpShaders();
 
 	// Main loop
@@ -83,7 +106,7 @@ void setUpLibraries(void) {
 	{
 		std::cerr << "Failed to initialize GLFW" << std::endl;
 	}
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
@@ -95,6 +118,7 @@ void setUpLibraries(void) {
 	}
 	glfwMakeContextCurrent(WINDOW);
 
+	glewExperimental = GL_TRUE;
 	GLenum err = glewInit();
 	if (err != GLEW_OK)
 	{
@@ -103,12 +127,28 @@ void setUpLibraries(void) {
 
 }
 void setUpShaders(void) {
+	
+	glGenTextures(1, &read_write_texture);
+	glBindTexture(GL_TEXTURE_2D, read_write_texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, WINDOW_WIDTH, WINDOW_HEIGHT);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	unsigned int image_unit = 3;
+	//glBindImageTexture(image_unit, read_write_texture, 0, false, 0, GL_WRITE_ONLY, GL_RGBA8);
+	unsigned int location = glGetUniformLocation(computeProgram.getID(), "img1");
+	glProgramUniform1i(computeProgram.getID(), location, image_unit);
+
+	computeProgram = ShaderProgram("../shaders/computeShader.comp");
+	computeProgram.bind();
 
 	shaderProgram = ShaderProgram("../shaders/vertexShader.vert", "../shaders/fragmentShader.frag");
-	shaderProgram.addGemoetryShader("../shaders/computeShader.geom");
 	shaderProgram.bind();
 
-	testTex = Texture("../textures/container.jpg");
+	//testTex = Texture("../textures/container.jpg");
 	
 }
 
@@ -123,13 +163,18 @@ void render(void) {
 
 void renderSquare() {
 
-	testTex.use();
+	glUseProgram(computeProgram.getID());
+	glDispatchCompute(WINDOW_WIDTH, WINDOW_HEIGHT, 1);
+	glUseProgram(0);
 
+	unsigned int texture_unit = 1;
+	glBindTextureUnit(texture_unit, read_write_texture);
+	unsigned int location = glGetUniformLocation(shaderProgram.getID(), "tex1");
+	glProgramUniform1i(shaderProgram.getID(), location, texture_unit);
 	glUseProgram(shaderProgram.getID());
-
-	//set Uniforms
-
 	shaderProgram.draw();
+	glUseProgram(0);
+
 }
 
 void cleanUp() {
