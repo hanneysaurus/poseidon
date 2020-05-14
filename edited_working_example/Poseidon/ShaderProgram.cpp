@@ -75,7 +75,7 @@ void ShaderProgram::addGemoetryShader(const char* geometryFilePath)
 
 }
 
-GLuint ShaderProgram::getID()
+unsigned int ShaderProgram::getID()
 {
 	return this->ID;
 }

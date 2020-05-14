@@ -14,154 +14,113 @@
 #include "gl/glut.h"
 #include "glm/glm.hpp"
 
+// --------------------------------------------------------
+// FUNCTION DECLARATIONS
 
-#include "Shader.h"
+// callback functions
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-// main functions
-void Initialize();
-void Render();
-void CleanUp();
+//setup functions
+void setUpLibraries();
+void setCallbackFunctions();
+void initialize();
 
+//loop functions
+void render();
+
+//cleanup functions
+void cleanUp();
+
+// --------------------------------------------------------
+// GLOBAL VARIABLES
+
+//window settings
 GLFWwindow* window = nullptr;
+int window_width = 800;
+int window_height = 600;
+const char* window_title = "Poseidon";
 
-//unsigned int program_compute = 0;
-//unsigned int computeshader = 0;
-
-unsigned int program_render = 0;
-unsigned int vertexshader = 0;
-unsigned int fragmentshader = 0;
-unsigned int vertexarray = 0;
-unsigned int vertexbuffer = 0;
+//shaders
+ShaderProgram programCompute;
+ShaderProgram programRender;
 unsigned int VAO, VBO;
 
+//textures
 unsigned int texture_read = 0;
 unsigned int texture_draw = 0;
 unsigned int texturewidth = 10;
 unsigned int textureheight = 10;
 
-ShaderProgram computeProgram;
+// --------------------------------------------------------
+// ERROR LOGGING
+#define ASSERT(x) if ((!x)) __debugbreak();
+#define GLCall(x) GLClearError();\
+    x;\
+    ASSERT(GLLogCall(#x, __FILE__, __LINE__))
 
-//------------------------------------------------------------------------------------------------------------------------
+static void GLClearError() {
+    while (glGetError() != GL_NO_ERROR);
+}
 
-
-
-std::string computeshader_source = {
-    "#version 450 core\n"
-    "layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;"
-    "layout ( binding = 3, rgba32f ) uniform writeonly image2D img2;"
-    "void main() {"
-    "ivec2 texel = ivec2(gl_GlobalInvocationID.xy);"
-    "vec4 color2 = vec4((texel.x+1.0)/10.0,(texel.y+1.0)/10.0,(texel.x+1.0)/10.0,1.0);"
-    "imageStore(img2, texel, color2);"
-    "}"
-};
-
-std::string vertexshader_source = {
-    "#version 450 core\n"
-    "in layout (location = 0) vec3 in_position;"
-    "in layout (location = 1) vec2 in_texcoord;"
-    "out vec2 texcoord;"
-    "void main() {"
-    "gl_Position = vec4(in_position, 1);"
-    "texcoord = in_texcoord;"
-    "}"
-};
-
-std::string fragmentshader_source = {
-    "#version 450 core\n"
-    "in vec2 texcoord;"
-    "uniform sampler2D tex1;"
-    "out layout (location = 0) vec4 out_color;"
-    "void main() {"
-    "out_color = texture(tex1, texcoord);"
-    "}"
-};
+static bool GLLogCall(const char* function, const char* file, int line) {
+    while (GLenum error = glGetError()) {
+        std::cout << "openGL error: (" << error << "): function" << function << std::endl << " file: " << file << std::endl << " line: " << line << std::endl;
+        return false;
+    }
+    return true;
+}
 
 
+// --------------------------------------------------------
+// STRUCTS
 struct Vertex {
     glm::vec3 Position;
     glm::vec2 TexCoord;
 };
 
-
+// --------------------------------------------------------
+// MAIN
 int main(void)
 {
-    /* Initialize the library */
-    if (!glfwInit())
-        return -1;
+    setUpLibraries();
 
-    /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "Example code", NULL, NULL);
-    if (!window)
-    {
-        glfwTerminate();
-        return -1;
-    }
+    setCallbackFunctions();
 
-    /* Make the window's context current */
-    glfwMakeContextCurrent(window);
+    initialize();
 
-    /* Initialize GLEW */
-    if (glewInit() != GLEW_OK)
-    {
-        glfwTerminate();
-        return -1;
-    }
-
-    computeProgram = ShaderProgram("../shaders/computeShader.comp");
-
-    Initialize();
-
-    /* Loop until the user closes the window */
+    //render loop
     while (!glfwWindowShouldClose(window))
     {
-        /* Render here */
-        Render();
+        
+        render();
 
-        /* Swap front and back buffers */
+
         glfwSwapBuffers(window);
-
-        /* Poll for and process events */
         glfwPollEvents();
     }
 
-    CleanUp();
+    cleanUp();
 
     glfwTerminate();
     return 0;
 }
 
 
-void Initialize()
+void initialize()
 {
-    // create all objects
-    //------------------------------------------------------------------------------------------------------------------------
-    //program_compute = glCreateProgram();
-    program_render = glCreateProgram();
-    vertexshader = glCreateShader(GL_VERTEX_SHADER);
-    fragmentshader = glCreateShader(GL_FRAGMENT_SHADER);
-    //computeshader = glCreateShader(GL_COMPUTE_SHADER);
+    // create shaderPrograms
+    programRender = ShaderProgram("../shaders/vertexShader.vert", "../shaders/fragmentShader.frag");
+    programCompute = ShaderProgram("../shaders/computeShader.comp");
+
+    //create vertex objects
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenTextures(1, &texture_read);
     glGenTextures(1, &texture_draw);
-    //------------------------------------------------------------------------------------------------------------------------
-
-    // setup programs
-    //------------------------------------------------------------------------------------------------------------------------
-    // compute
-    //CompileShader(computeshader, computeshader_source);
-    //LinkProgram(program_compute, { computeshader });
-
-    // render
-    CompileShader(vertexshader, vertexshader_source);
-    CompileShader(fragmentshader, fragmentshader_source);
-    LinkProgram(program_render, { vertexshader, fragmentshader });
-    //------------------------------------------------------------------------------------------------------------------------
 
 
     // setup vertex array
-    //------------------------------------------------------------------------------------------------------------------------
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Vertex), (void*)(0));
@@ -170,11 +129,9 @@ void Initialize()
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
-    //------------------------------------------------------------------------------------------------------------------------
 
 
     // setup vertex buffer
-    //------------------------------------------------------------------------------------------------------------------------
     // quad
     Vertex vertices[] = {
         //    x           y       z      u  v
@@ -186,11 +143,9 @@ void Initialize()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //------------------------------------------------------------------------------------------------------------------------
+
 
     // setup texture that is written to in compute shader and then read from in fragment shader
-    //------------------------------------------------------------------------------------------------------------------------
-
     glBindTexture(GL_TEXTURE_2D, texture_draw);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -206,53 +161,90 @@ void Initialize()
     // connect texture to read from as sampler in fragment shader
     unsigned int texture_unit = 1;
     glBindTextureUnit(texture_unit, texture_draw);
-    int location = glGetUniformLocation(program_render, "tex1");
-    glProgramUniform1i(program_render, location, texture_unit);
+    int location = glGetUniformLocation(programRender.getID(), "tex1");
+    glProgramUniform1i(programRender.getID(), location, texture_unit);
 
-    //------------------------------------------------------------------------------------------------------------------------
+    //invoke compute shader
+    programCompute.use();
+    programCompute.dispatchCompute(texturewidth, textureheight, 1);
+    programCompute.unuse();
+}
 
-    // invoke compute shader
-    //------------------------------------------------------------------------------------------------------------------------
+void setUpLibraries()
+{
+    //initialize GLFW
+    if (!glfwInit()) {
+        std::cerr << "Failed to initialize GLFW" << std::endl;
+    }
 
-    
-    //glUseProgram(computeProgram.getID());
-    computeProgram.bind();
-    computeProgram.dispatchCompute(texturewidth, textureheight, 1);
-    //glDispatchCompute(texturewidth, textureheight, 1);
-    //glUseProgram(0);
-    computeProgram.unbind();
+    //create window
+    window = glfwCreateWindow(window_width, window_height, window_title, NULL, NULL);
+    if (!window)
+    {
+        std::cerr << "Failed to open GLFW window" << std::endl;
+        glfwTerminate();
+    }
 
-    std::cout << "AM I CRAZY? ";
+    //set OpenGL version
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwMakeContextCurrent(window);
+
+    //initialize GLEW
+    glewExperimental = GL_TRUE;
+    if (glewInit() != GLEW_OK)
+    {
+        std::cerr << "Failed to initialize GLEW" << std::endl;
+        glfwTerminate();
+    }
+}
+
+void setCallbackFunctions(void) {
+    glfwSetKeyCallback(window, key_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 }
 
 
-void Render()
+void render()
 {
     glClearColor(0.5f, 0.5f, 0.5f, 0);    // background = gray
     glClear(GL_COLOR_BUFFER_BIT);
 
     // render quad
-    glUseProgram(program_render);
+    programRender.use();
     glBindVertexArray(VAO);
     glDrawArrays(GL_QUADS, 0, 4);
     glBindVertexArray(0);
-    glUseProgram(0);
-
+    programRender.unuse();
 }
 
 
-void CleanUp()
+void cleanUp()
 {
     // delete all objects
-    //glDeleteProgram(program_compute);
-    glDeleteProgram(program_render);
-    glDeleteShader(vertexshader);
-    glDeleteShader(fragmentshader);
-    //glDeleteShader(computeshader);
+    glDeleteProgram(programCompute.getID());
+    glDeleteProgram(programRender.getID());
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteTextures(1, &texture_read);
     glDeleteTextures(1, &texture_draw);
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+
+    if (action != GLFW_RELEASE) return;
+
+    switch (key) {
+    case GLFW_KEY_ESCAPE:
+        glfwSetWindowShouldClose(window, true);
+        break;
+    }
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+  
 }
 
 

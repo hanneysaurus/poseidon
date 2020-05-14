@@ -32,7 +32,7 @@ ShaderProgram::ShaderProgram(const char* vertexFilePath, const char* fragmentFil
 	GLuint vertexShader = createShader(vertexFilePath, GL_VERTEX_SHADER);
 	GLuint fragmentShader = createShader(fragmentFilePath, GL_FRAGMENT_SHADER);
 
-	glAttachShader(ID, vertexShader);>
+	glAttachShader(ID, vertexShader);
 	glAttachShader(ID, fragmentShader);
 	glLinkProgram(ID);
 

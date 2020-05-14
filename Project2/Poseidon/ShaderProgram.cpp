@@ -1,46 +1,24 @@
 #include "ShaderProgram.h"
 
-//float square_vertices[] = {
-	// positions          // colors           // texture coords
-	 //0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
-	 //0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
-	//-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-	//-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left
-//};
-
-//unsigned int square_indices[] = {
-	//0,1,3,	//first triangle
-	//1,2,3	//second triangle
-//};
-
-//float testingwaters[] = {
-		  //position			//uv coords
-		 //0.5f, 0.5f, 0.0f,		1.0f, 1.0f, // top-right
-		  //0.5f,	-0.5f, 0.0f,	1.0f, 0.0f, // bottom-right
-		 //-0.5f, 0.5f, 0.0f,		0.0f, 1.0f, // top-left
-		 //-0.5f, -0.5f, 0.0f,	0.0f, 0.0f, // bottom-left
-//};
-
-
-
 ShaderProgram::ShaderProgram()
 {
-
 }
 
-ShaderProgram::ShaderProgram(std::string computeFilePath)
+ShaderProgram::ShaderProgram(const char* computeFilePath)
 {
 	this->program_id = glCreateProgram();
-	unsigned int computeShader = createShader(computeFilePath, Shader_type::COMPUTE);
-	glAttachShader(this->program_id, computeShader);
-	glLinkProgram(this->program_id);
-	glDetachShader(this->program_id, computeShader);
+
+	GLuint computeShader = createShader(computeFilePath, ShaderType::COMPUTE);
+
+	glAttachShader(program_id, computeShader);
+	glLinkProgram(program_id);
 
 	int success;
 	char infoLog[512];
 	glGetProgramiv(this->program_id, GL_LINK_STATUS, &success);
 	if (!success)
 	{
+
 		glGetProgramInfoLog(this->program_id, 512, NULL, infoLog);
 		std::cout << "ERROR: Shader Linking failed \n" << infoLog << std::endl;
 	}
@@ -52,12 +30,12 @@ ShaderProgram::ShaderProgram(const char* vertexFilePath, const char* fragmentFil
 {
 	this->program_id = glCreateProgram();
 
-	GLuint vertexShader = createShader(vertexFilePath, Shader_type::VERTEX);
-	GLuint fragmentShader = createShader(fragmentFilePath, Shader_type::FRAGMENT);
+	GLuint vertexShader = createShader(vertexFilePath, ShaderType::VERTEX);
+	GLuint fragmentShader = createShader(fragmentFilePath, ShaderType::FRAGMENT);
 
-	glAttachShader(this->program_id, vertexShader);
-	glAttachShader(this->program_id, fragmentShader);
-	glLinkProgram(this->program_id);
+	glAttachShader(program_id, vertexShader);
+	glAttachShader(program_id, fragmentShader);
+	glLinkProgram(program_id);
 
 	int success;
 	char infoLog[512];
@@ -75,40 +53,47 @@ ShaderProgram::ShaderProgram(const char* vertexFilePath, const char* fragmentFil
 
 ShaderProgram::~ShaderProgram()
 {
-	glDeleteProgram(this->program_id);
+	
 }
 
-GLuint ShaderProgram::getID()
+unsigned int ShaderProgram::getID()
 {
 	return this->program_id;
 }
 
-void ShaderProgram::bind()
+
+void ShaderProgram::dispatchCompute(int width, int height, int depth)
+{
+	glDispatchCompute(width, height, depth);
+}
+
+void ShaderProgram::use()
 {
 	glUseProgram(this->program_id);
 }
 
-
-void ShaderProgram::unbind(){
+void ShaderProgram::unuse()
+{
 	glUseProgram(0);
 }
 
-unsigned int ShaderProgram::createShader(std::string filePath, Shader_type shader_type) {
-	GLenum type;
-	switch (shader_type)
+GLuint ShaderProgram::createShader(const char* filePath, ShaderType type) {
+
+	GLenum shaderType;
+	switch (type)
 	{
-	case Shader_type::VERTEX:
-		type = GL_VERTEX_SHADER;
+	case ShaderType::VERTEX:
+		shaderType = GL_VERTEX_SHADER;
 		break;
-	case Shader_type::COMPUTE:
-		type = GL_COMPUTE_SHADER;
+	case ShaderType::COMPUTE:
+		shaderType = GL_COMPUTE_SHADER;
 		break;
-	case Shader_type::FRAGMENT:
-		type = GL_FRAGMENT_SHADER;
+	case ShaderType::FRAGMENT:
+		shaderType = GL_FRAGMENT_SHADER;
 		break;
 	default:
 		break;
-	};
+	}
 
 	std::string absoluteFilePath = std::filesystem::absolute(filePath).u8string();
 	std::ifstream filestream(absoluteFilePath, std::ios::in);
@@ -124,7 +109,7 @@ unsigned int ShaderProgram::createShader(std::string filePath, Shader_type shade
 	filestream.close();
 	const char* shaderSource = content.c_str();
 
-	unsigned int shader = glCreateShader(type);
+	GLuint shader = glCreateShader(shaderType);
 	glShaderSource(shader, 1, &shaderSource, NULL);
 
 	glCompileShader(shader);
@@ -145,39 +130,3 @@ unsigned int ShaderProgram::createShader(std::string filePath, Shader_type shade
 
 	return shader;
 }
-
-
-int ShaderProgram::GetUniformLocation(const std::string& name)
-{
-    if (m_UniformLocationCache.find(name) != m_UniformLocationCache.end())
-        return m_UniformLocationCache[name];
-
-	int location = glGetUniformLocation(program_id, name.c_str());
-    if (location == -1)
-        std::cout << "No active uniform variable with name " << name << " found" << std::endl;
-
-    m_UniformLocationCache[name] = location;
-
-    return location;
-}
-
-void ShaderProgram::SetUniform1i(const std::string& name, int value)
-{
-	glUniform1i(GetUniformLocation(name), value);
-}
-
-void ShaderProgram::SetUniform1f(const std::string& name, float value)
-{
-	glUniform1f(GetUniformLocation(name), value);
-}
-
-void ShaderProgram::SetUniform4f(const std::string& name, float f0, float f1, float f2, float f3)
-{
-	glUniform4f(GetUniformLocation(name), f0, f1, f2, f3);
-}
-
-void ShaderProgram::dispatchCompute(const int width, const int height, const int depth)
-{
-	glDispatchCompute(width, height, depth);
-}
-

@@ -63,6 +63,8 @@ static bool GLLogCall(const char* function, const char* file, int line) {
 
 //------------------------------------------------------------------------------------------------------------------------
 
+unsigned int computeProgram;
+
 string computeshader_source = {
     "#version 450 core\n"
     "layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;"
@@ -152,6 +154,7 @@ void Initialize()
 {
     // create all objects
     //------------------------------------------------------------------------------------------------------------------------
+    
     program_compute = glCreateProgram();
     program_render = glCreateProgram();
     vertexshader = glCreateShader(GL_VERTEX_SHADER);
