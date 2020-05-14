@@ -3,7 +3,6 @@
 #include <string>
 #include <list>
 
-
 // shader functions
 std::string LoadTextFile(const std::string& filepath);
 std::string ShaderTypeName(unsigned int shader);

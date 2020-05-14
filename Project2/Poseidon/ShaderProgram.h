@@ -5,37 +5,48 @@
 #include <sstream>
 #include <fstream>
 #include <gl/glew.h>
+#include "glm/glm.hpp"
+#include <string>
+#include <unordered_map>
+
+
+// error logging
+//------------------------------------------------------------------------------------------------------------------------
+
+
+// error logging
+//------------------------------------------------------------------------------------------------------------------------
+enum class Shader_type {
+		VERTEX = 0, COMPUTE = 1, FRAGMENT = 2
+	};
 
 class ShaderProgram
 {
+	
 public:
 	ShaderProgram();
-	ShaderProgram(const char* computeFilePath);
+	ShaderProgram(std::string computeFilePath);
 	ShaderProgram(const char* vertexFilePath, const char* fragmentFilePath);
 	~ShaderProgram();
 
-	void addComputeShader(const char* computeFilePath);
-
-	void addGeometryShader(const char* geometryFilePath);
-
-	GLuint getID();
-	unsigned int getVAO();
-	unsigned int getVBO();
-
-	void draw();
+	unsigned int getID();
 
 	void bind();
-	void cleanUp();
+	void unbind();
+
+	int GetUniformLocation(const std::string& name);
+	void SetUniform1i(const std::string& name, int value);
+    void SetUniform1f(const std::string& name, float value);
+    void SetUniform4f(const std::string& name, float f0, float f1, float f2, float f3);
+
+	void dispatchCompute(const int width,const int height,const int depth);
 
 private:
 
-	unsigned int VAO;
-	unsigned int VBO;
-	unsigned int EBO;
-
-	GLuint ID;
+	unsigned int program_id;
+	std::unordered_map<std::string, int> m_UniformLocationCache;
 	
-	GLuint createShader(const char* filePath, GLenum type);
+	unsigned int createShader(std::string filePath, Shader_type shader_type);
+
 
 };
-
