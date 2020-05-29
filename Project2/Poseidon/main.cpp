@@ -48,7 +48,8 @@ unsigned int VAO, VBO;
 
 //textures
 unsigned int texture_read = 0;
-unsigned int texture_draw = 0;
+unsigned int texture_tilde_h0k = 0;
+unsigned int texture_tilde_h0minusk = 0;
 unsigned int texturewidth = 100;
 unsigned int textureheight = 100;
 
@@ -92,7 +93,7 @@ int main(void)
     while (!glfwWindowShouldClose(window))
     {        
         glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_SRC_ALPHA);
+        //glBlendFunc(GL_RGB, GL_SRC_ALPHA);
 
         render();
 
@@ -117,7 +118,8 @@ void initialize()
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenTextures(1, &texture_read);
-    glGenTextures(1, &texture_draw);
+    glGenTextures(1, &texture_tilde_h0k);
+    glGenTextures(1, &texture_tilde_h0minusk);
 
     // setup vertex array
     glBindVertexArray(VAO);
@@ -145,7 +147,15 @@ void initialize()
 
 
     // setup texture that is written to in compute shader and then read from in fragment shader
-    glBindTexture(GL_TEXTURE_2D, texture_draw);
+    glBindTexture(GL_TEXTURE_2D, texture_tilde_h0k);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, texturewidth, textureheight);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindTexture(GL_TEXTURE_2D, texture_tilde_h0minusk);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -154,13 +164,18 @@ void initialize()
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // connect texture to write to as image variable in compute shader
-    unsigned int image_unit = 3;
-    glBindImageTexture(image_unit, texture_draw, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindImageTexture(0, texture_tilde_h0k, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindImageTexture(1, texture_tilde_h0minusk, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
     // connect texture to read from as sampler in fragment shader
     unsigned int texture_unit = 1;
-    glBindTextureUnit(texture_unit, texture_draw);
+    glBindTextureUnit(texture_unit, texture_tilde_h0k);
     int location = glGetUniformLocation(programRender.getID(), "tex1");
+    glProgramUniform1i(programRender.getID(), location, texture_unit);
+
+    texture_unit = 2;
+    glBindTextureUnit(texture_unit, texture_tilde_h0minusk);
+    location = glGetUniformLocation(programRender.getID(), "tex2");
     glProgramUniform1i(programRender.getID(), location, texture_unit);
 
     //invoke compute shader
@@ -227,7 +242,8 @@ void cleanUp()
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteTextures(1, &texture_read);
-    glDeleteTextures(1, &texture_draw);
+    glDeleteTextures(1, &texture_tilde_h0k);
+    glDeleteTextures(1, &texture_tilde_h0minusk);
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
