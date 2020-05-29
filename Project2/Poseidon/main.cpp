@@ -13,6 +13,7 @@
 #include <gl/GLU.h>		//OpenGL utilities
 #include "gl/glut.h"
 #include "glm/glm.hpp"
+#include "glm/gtc/noise.hpp"
 
 // --------------------------------------------------------
 // FUNCTION DECLARATIONS
@@ -50,6 +51,12 @@ unsigned int VAO, VBO;
 unsigned int texture_read = 0;
 unsigned int texture_tilde_h0k = 0;
 unsigned int texture_tilde_h0minusk = 0;
+
+unsigned int texture_random_noise_1 = 0;
+unsigned int texture_random_noise_2 = 0;
+unsigned int texture_random_noise_3 = 0;
+unsigned int texture_random_noise_4 = 0;
+
 unsigned int texturewidth = 100;
 unsigned int textureheight = 100;
 
@@ -163,9 +170,62 @@ void initialize()
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, texturewidth, textureheight);
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    //random noise textures
+    float data[100 * 100];  
+    std::cout << sizeof(data) << std::endl;
+    for (int col = 0; col < texturewidth; col++)
+    {
+        for (int row = 0; row < textureheight; row++)
+        {
+            float rand_value = rand() / (float)RAND_MAX;
+            data[(row * texturewidth + col)] = 1.0;
+        }
+    }
+    /*GLubyte* data = new GLubyte[texturewidth * textureheight * 4];
+    float xFactor = 1.0f / (texturewidth - 1);
+    float yFactor = 1.0f / (textureheight - 1);
+
+    for (int row = 0; row < textureheight; row++)
+    {
+        for (int col = 0; col < texturewidth; col++)
+        {
+            float x = xFactor * col;
+            float y = yFactor * row;
+            float sum = 0.0f;
+            float freq = 1.0;
+            float scale = 2.0;
+
+            for (int oct = 0; oct < 4; oct++)
+            {
+                glm::vec2 p(x * freq, y * freq);
+                float val = glm::perlin(p) / scale;
+                sum += val;
+                float result = (sum + 1.0f) / 2.0f;
+
+                data[((row * texturewidth + col) * 4) + oct] =
+                    (GLubyte)(result * 255.0f);
+                freq *= 2.0f;
+                scale *= 2.0;
+            }
+        }
+    }
+
+    for (int i = 0; i < sizeof(data); i++)
+    {
+        std::cout << data[i] << std::endl;
+    }*/
+
+    glGenTextures(1, &texture_random_noise_1);
+    glBindTexture(GL_TEXTURE_2D, texture_random_noise_1);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texturewidth, textureheight);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texturewidth, textureheight, GL_RGBA8, GL_UNSIGNED_BYTE, data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     // connect texture to write to as image variable in compute shader
     glBindImageTexture(0, texture_tilde_h0k, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindImageTexture(1, texture_tilde_h0minusk, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    glBindImageTexture(2, texture_random_noise_1, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
 
     // connect texture to read from as sampler in fragment shader
     unsigned int texture_unit = 1;
@@ -177,6 +237,11 @@ void initialize()
     glBindTextureUnit(texture_unit, texture_tilde_h0minusk);
     location = glGetUniformLocation(programRender.getID(), "tex2");
     glProgramUniform1i(programRender.getID(), location, texture_unit);
+
+    texture_unit = 3;
+    glBindTextureUnit(texture_unit, texture_random_noise_1);
+    location = glGetUniformLocation(programCompute.getID(), "randtex1");
+    glProgramUniform1i(programCompute.getID(), location, texture_unit);
 
     //invoke compute shader
     programCompute.bind();

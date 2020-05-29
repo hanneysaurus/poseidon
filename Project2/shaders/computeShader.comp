@@ -6,12 +6,10 @@ layout ( binding = 0, rgba32f ) uniform writeonly image2D tilde_h0k;
 
 layout ( binding = 1, rgba32f ) uniform writeonly image2D tilde_h0minusk;
 
+layout ( binding = 2, rgba8 ) uniform readonly image2D randtex1;
+
 float rand(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
-}
-
-vec4 gauss_random(vec2 co){
-	
 }
 
 void main() {
@@ -19,7 +17,9 @@ void main() {
 	
 	vec4 red = vec4(1.0, 0.0, 0.0, 1.0);
 	vec4 green = vec4(0.0, 1.0, 0.0, 1.0);
+
+	vec4 noise_tex_color = vec4(0,imageLoad(randtex1, texel).r,0,1);
 		
-	imageStore(tilde_h0k, texel, red);
+	imageStore(tilde_h0k, texel, noise_tex_color);
 	imageStore(tilde_h0minusk, texel, green);
 }
