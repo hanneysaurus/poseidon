@@ -22,8 +22,8 @@ public:
 
 	void dispatchCompute(int width, int height, int depth);
 
-	void use();
-	void unuse();
+	void bind();
+	void unbind();
 
 private:
 

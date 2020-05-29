@@ -67,12 +67,12 @@ void ShaderProgram::dispatchCompute(int width, int height, int depth)
 	glDispatchCompute(width, height, depth);
 }
 
-void ShaderProgram::use()
+void ShaderProgram::bind()
 {
 	glUseProgram(this->program_id);
 }
 
-void ShaderProgram::unuse()
+void ShaderProgram::unbind()
 {
 	glUseProgram(0);
 }

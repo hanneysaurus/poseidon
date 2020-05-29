@@ -164,9 +164,9 @@ void initialize()
     glProgramUniform1i(programRender.getID(), location, texture_unit);
 
     //invoke compute shader
-    programCompute.use();
+    programCompute.bind();
     programCompute.dispatchCompute(texturewidth, textureheight, 1);
-    programCompute.unuse();
+    programCompute.unbind();
 }
 
 void setUpLibraries()
@@ -211,11 +211,11 @@ void render()
     glClear(GL_COLOR_BUFFER_BIT);
 
     // render quad
-    programRender.use();
+    programRender.bind();
     glBindVertexArray(VAO);
     glDrawArrays(GL_QUADS, 0, 4);
     glBindVertexArray(0);
-    programRender.unuse();
+    programRender.unbind();
 }
 
 
