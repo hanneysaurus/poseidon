@@ -57,8 +57,8 @@ unsigned int texture_random_noise_2 = 0;
 unsigned int texture_random_noise_3 = 0;
 unsigned int texture_random_noise_4 = 0;
 
-unsigned int texturewidth = 100;
-unsigned int textureheight = 100;
+unsigned int texturewidth = 10;
+unsigned int textureheight = 10;
 
 // --------------------------------------------------------
 // ERROR LOGGING
@@ -127,6 +127,10 @@ void initialize()
     glGenTextures(1, &texture_read);
     glGenTextures(1, &texture_tilde_h0k);
     glGenTextures(1, &texture_tilde_h0minusk);
+    glGenTextures(1, &texture_random_noise_1);
+    glGenTextures(1, &texture_random_noise_2);
+    glGenTextures(1, &texture_random_noise_3);
+    glGenTextures(1, &texture_random_noise_4);
 
     // setup vertex array
     glBindVertexArray(VAO);
@@ -171,61 +175,102 @@ void initialize()
     glBindTexture(GL_TEXTURE_2D, 0);
 
     //random noise textures
-    float data[100 * 100];  
-    std::cout << sizeof(data) << std::endl;
-    for (int col = 0; col < texturewidth; col++)
+    unsigned char random_noise_1_data[10 * 10 * 4];
+    for (int row = 0; row < textureheight; row++)    
     {
-        for (int row = 0; row < textureheight; row++)
+        for (int col = 0; col < texturewidth; col++)
         {
-            float rand_value = rand() / (float)RAND_MAX;
-            data[(row * texturewidth + col)] = 1.0;
+            int rand_value = rand() % 255;
+           
+            random_noise_1_data[((row * texturewidth + col) * 4) + 0] = rand_value;
+            random_noise_1_data[((row * texturewidth + col) * 4) + 1] = rand_value;
+            random_noise_1_data[((row * texturewidth + col) * 4) + 2] = rand_value;
+            random_noise_1_data[((row * texturewidth + col) * 4) + 3] = 255; 
         }
     }
-    /*GLubyte* data = new GLubyte[texturewidth * textureheight * 4];
-    float xFactor = 1.0f / (texturewidth - 1);
-    float yFactor = 1.0f / (textureheight - 1);
 
+    unsigned char random_noise_2_data[10 * 10 * 4];
     for (int row = 0; row < textureheight; row++)
     {
         for (int col = 0; col < texturewidth; col++)
         {
-            float x = xFactor * col;
-            float y = yFactor * row;
-            float sum = 0.0f;
-            float freq = 1.0;
-            float scale = 2.0;
+            int rand_value = rand() % 255;
 
-            for (int oct = 0; oct < 4; oct++)
-            {
-                glm::vec2 p(x * freq, y * freq);
-                float val = glm::perlin(p) / scale;
-                sum += val;
-                float result = (sum + 1.0f) / 2.0f;
-
-                data[((row * texturewidth + col) * 4) + oct] =
-                    (GLubyte)(result * 255.0f);
-                freq *= 2.0f;
-                scale *= 2.0;
-            }
+            random_noise_2_data[((row * texturewidth + col) * 4) + 0] = rand_value;
+            random_noise_2_data[((row * texturewidth + col) * 4) + 1] = rand_value;
+            random_noise_2_data[((row * texturewidth + col) * 4) + 2] = rand_value;
+            random_noise_2_data[((row * texturewidth + col) * 4) + 3] = 255;
         }
     }
 
-    for (int i = 0; i < sizeof(data); i++)
+    unsigned char random_noise_3_data[10 * 10 * 4];
+    for (int row = 0; row < textureheight; row++)
     {
-        std::cout << data[i] << std::endl;
-    }*/
+        for (int col = 0; col < texturewidth; col++)
+        {
+            int rand_value = rand() % 255;
 
-    glGenTextures(1, &texture_random_noise_1);
+            random_noise_3_data[((row * texturewidth + col) * 4) + 0] = rand_value;
+            random_noise_3_data[((row * texturewidth + col) * 4) + 1] = rand_value;
+            random_noise_3_data[((row * texturewidth + col) * 4) + 2] = rand_value;
+            random_noise_3_data[((row * texturewidth + col) * 4) + 3] = 255;
+        }
+    }
+
+    unsigned char random_noise_4_data[10 * 10 * 4];
+    for (int row = 0; row < textureheight; row++)
+    {
+        for (int col = 0; col < texturewidth; col++)
+        {
+            int rand_value = rand() % 255;
+
+            random_noise_4_data[((row * texturewidth + col) * 4) + 0] = rand_value;
+            random_noise_4_data[((row * texturewidth + col) * 4) + 1] = rand_value;
+            random_noise_4_data[((row * texturewidth + col) * 4) + 2] = rand_value;
+            random_noise_4_data[((row * texturewidth + col) * 4) + 3] = 255;
+        }
+    }
+
     glBindTexture(GL_TEXTURE_2D, texture_random_noise_1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texturewidth, textureheight);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texturewidth, textureheight, GL_RGBA8, GL_UNSIGNED_BYTE, data);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texturewidth, textureheight, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_1_data);
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindTexture(GL_TEXTURE_2D, texture_random_noise_2);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texturewidth, textureheight);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texturewidth, textureheight, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_2_data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindTexture(GL_TEXTURE_2D, texture_random_noise_3);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texturewidth, textureheight);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texturewidth, textureheight, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_3_data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindTexture(GL_TEXTURE_2D, texture_random_noise_4);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texturewidth, textureheight);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texturewidth, textureheight, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_4_data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
 
     // connect texture to write to as image variable in compute shader
     glBindImageTexture(0, texture_tilde_h0k, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindImageTexture(1, texture_tilde_h0minusk, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
-    glBindImageTexture(2, texture_random_noise_1, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
 
     // connect texture to read from as sampler in fragment shader
     unsigned int texture_unit = 1;
@@ -238,10 +283,22 @@ void initialize()
     location = glGetUniformLocation(programRender.getID(), "tex2");
     glProgramUniform1i(programRender.getID(), location, texture_unit);
 
-    texture_unit = 3;
-    glBindTextureUnit(texture_unit, texture_random_noise_1);
+    glBindImageTexture(3, texture_random_noise_1, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
     location = glGetUniformLocation(programCompute.getID(), "randtex1");
-    glProgramUniform1i(programCompute.getID(), location, texture_unit);
+    glProgramUniform1i(programCompute.getID(), location, 3);
+
+    glBindImageTexture(4, texture_random_noise_2, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
+    location = glGetUniformLocation(programCompute.getID(), "randtex2");
+    glProgramUniform1i(programCompute.getID(), location, 4);
+
+    glBindImageTexture(5, texture_random_noise_3, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
+    location = glGetUniformLocation(programCompute.getID(), "randtex3");
+    glProgramUniform1i(programCompute.getID(), location, 5);
+
+    glBindImageTexture(6, texture_random_noise_4, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
+    location = glGetUniformLocation(programCompute.getID(), "randtex4");
+    glProgramUniform1i(programCompute.getID(), location, 6);
+
 
     //invoke compute shader
     programCompute.bind();
@@ -287,7 +344,7 @@ void setCallbackFunctions(void) {
 
 void render()
 {
-    glClearColor(0.5f, 0.5f, 0.5f, 0);    // background = gray
+    glClearColor(0.0f, 0.0f, 0.0f, 0);    // background = gray
     glClear(GL_COLOR_BUFFER_BIT);
 
     // render quad
@@ -309,6 +366,10 @@ void cleanUp()
     glDeleteTextures(1, &texture_read);
     glDeleteTextures(1, &texture_tilde_h0k);
     glDeleteTextures(1, &texture_tilde_h0minusk);
+    glDeleteTextures(1, &texture_random_noise_1);
+    glDeleteTextures(1, &texture_random_noise_2);
+    glDeleteTextures(1, &texture_random_noise_3);
+    glDeleteTextures(1, &texture_random_noise_4);
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
