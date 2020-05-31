@@ -9,11 +9,14 @@
 
 #include "GLFW/glfw3.h"
 #include "gl/glew.h"
-#include <gl/GL.h>		//standard OpenGL include
-#include <gl/GLU.h>		//OpenGL utilities
+#include <gl/GL.h>		// standard OpenGL include
+#include <gl/GLU.h>		// OpenGL utilities
 #include "gl/glut.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/noise.hpp"
+
+#include "Debug.h"
+#include "UtilityFunctions.h"
 
 // --------------------------------------------------------
 // FUNCTION DECLARATIONS
@@ -22,32 +25,32 @@
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-//setup functions
+// setup functions
 void setUpLibraries();
 void setCallbackFunctions();
 void initialize();
 
-//loop functions
+// loop functions
 void render();
 
-//cleanup functions
+// cleanup functions
 void cleanUp();
 
 // --------------------------------------------------------
 // GLOBAL VARIABLES
 
-//window settings
+// window settings
 GLFWwindow* window = nullptr;
-int window_width = 800;
-int window_height = 600;
+const int window_width = 800;
+const int window_height = 600;
 const char* window_title = "Poseidon";
 
-//shaders
+// shaders
 ShaderProgram programCompute;
 ShaderProgram programRender;
 unsigned int VAO, VBO;
 
-//textures
+// textures
 unsigned int texture_read = 0;
 unsigned int texture_tilde_h0k = 0;
 unsigned int texture_tilde_h0minusk = 0;
@@ -57,27 +60,8 @@ unsigned int texture_random_noise_2 = 0;
 unsigned int texture_random_noise_3 = 0;
 unsigned int texture_random_noise_4 = 0;
 
-unsigned int texturewidth = 10;
-unsigned int textureheight = 10;
-
-// --------------------------------------------------------
-// ERROR LOGGING
-#define ASSERT(x) if ((!x)) __debugbreak();
-#define GLCall(x) GLClearError();\
-    x;\
-    ASSERT(GLLogCall(#x, __FILE__, __LINE__))
-
-static void GLClearError() {
-    while (glGetError() != GL_NO_ERROR);
-}
-
-static bool GLLogCall(const char* function, const char* file, int line) {
-    while (GLenum error = glGetError()) {
-        std::cout << "openGL error: (" << error << "): function" << function << std::endl << " file: " << file << std::endl << " line: " << line << std::endl;
-        return false;
-    }
-    return true;
-}
+const unsigned int texture_width = 10;
+const unsigned int texture_height = 10;
 
 
 // --------------------------------------------------------
@@ -118,8 +102,8 @@ int main(void)
 void initialize()
 {
     // create shaderPrograms
-    programRender = ShaderProgram("../shaders/vertexShader.vert", "../shaders/fragmentShader.frag");
-    programCompute = ShaderProgram("../shaders/computeShader.comp");
+    programRender = ShaderProgram("VertexShader.shader", "FragmentShader.shader");
+    programCompute = ShaderProgram("ComputeShader.shader");
 
     //create vertex objects
     glGenVertexArrays(1, &VAO);
@@ -163,7 +147,7 @@ void initialize()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, texturewidth, textureheight);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, texture_width, texture_height);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glBindTexture(GL_TEXTURE_2D, texture_tilde_h0minusk);
@@ -171,73 +155,71 @@ void initialize()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, texturewidth, textureheight);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, texture_width, texture_height);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    //random noise textures
-    unsigned char random_noise_1_data[10 * 10 * 4];
-    for (int row = 0; row < textureheight; row++)    
-    {
-        for (int col = 0; col < texturewidth; col++)
-        {
+
+    // create noise data:
+    GLubyte random_noise_1_data[texture_width][texture_width][4];
+    for (int i = 0; i < texture_width; i++) {
+        for (int j = 0; j < texture_height; j++) {
+
             int rand_value = rand() % 255;
-           
-            random_noise_1_data[((row * texturewidth + col) * 4) + 0] = rand_value;
-            random_noise_1_data[((row * texturewidth + col) * 4) + 1] = rand_value;
-            random_noise_1_data[((row * texturewidth + col) * 4) + 2] = rand_value;
-            random_noise_1_data[((row * texturewidth + col) * 4) + 3] = 255; 
+
+            random_noise_1_data[i][j][0] =  rand_value; // RED
+            random_noise_1_data[i][j][1] =  rand_value; // GREEN 
+            random_noise_1_data[i][j][2] =  rand_value; // BLUE
+            random_noise_1_data[i][j][3] = 255;         //ALPHA
         }
     }
 
-    unsigned char random_noise_2_data[10 * 10 * 4];
-    for (int row = 0; row < textureheight; row++)
-    {
-        for (int col = 0; col < texturewidth; col++)
-        {
+    GLubyte random_noise_2_data[texture_width][texture_width][4];
+    for (int i = 0; i < texture_width; i++) {
+        for (int j = 0; j < texture_height; j++) {
+
             int rand_value = rand() % 255;
 
-            random_noise_2_data[((row * texturewidth + col) * 4) + 0] = rand_value;
-            random_noise_2_data[((row * texturewidth + col) * 4) + 1] = rand_value;
-            random_noise_2_data[((row * texturewidth + col) * 4) + 2] = rand_value;
-            random_noise_2_data[((row * texturewidth + col) * 4) + 3] = 255;
+            random_noise_2_data[i][j][0] = rand_value;
+            random_noise_2_data[i][j][1] = rand_value;
+            random_noise_2_data[i][j][2] = rand_value;
+            random_noise_2_data[i][j][3] = 255;
         }
     }
 
-    unsigned char random_noise_3_data[10 * 10 * 4];
-    for (int row = 0; row < textureheight; row++)
-    {
-        for (int col = 0; col < texturewidth; col++)
-        {
+    GLubyte random_noise_3_data[texture_width][texture_width][4];
+    for (int i = 0; i < texture_width; i++) {
+        for (int j = 0; j < texture_height; j++) {
+
             int rand_value = rand() % 255;
 
-            random_noise_3_data[((row * texturewidth + col) * 4) + 0] = rand_value;
-            random_noise_3_data[((row * texturewidth + col) * 4) + 1] = rand_value;
-            random_noise_3_data[((row * texturewidth + col) * 4) + 2] = rand_value;
-            random_noise_3_data[((row * texturewidth + col) * 4) + 3] = 255;
+            random_noise_3_data[i][j][0] = rand_value;
+            random_noise_3_data[i][j][1] = rand_value;
+            random_noise_3_data[i][j][2] = rand_value;
+            random_noise_3_data[i][j][3] = 255;
         }
     }
 
-    unsigned char random_noise_4_data[10 * 10 * 4];
-    for (int row = 0; row < textureheight; row++)
-    {
-        for (int col = 0; col < texturewidth; col++)
-        {
+    GLubyte random_noise_4_data[texture_width][texture_width][4];
+    for (int i = 0; i < texture_width; i++) {
+        for (int j = 0; j < texture_height; j++) {
+
             int rand_value = rand() % 255;
 
-            random_noise_4_data[((row * texturewidth + col) * 4) + 0] = rand_value;
-            random_noise_4_data[((row * texturewidth + col) * 4) + 1] = rand_value;
-            random_noise_4_data[((row * texturewidth + col) * 4) + 2] = rand_value;
-            random_noise_4_data[((row * texturewidth + col) * 4) + 3] = 255;
+            random_noise_4_data[i][j][0] = rand_value;
+            random_noise_4_data[i][j][1] = rand_value;
+            random_noise_4_data[i][j][2] = rand_value;
+            random_noise_4_data[i][j][3] = 255;
         }
     }
 
+    // create and bind textues to store noise data
     glBindTexture(GL_TEXTURE_2D, texture_random_noise_1);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texturewidth, textureheight);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texturewidth, textureheight, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_1_data);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texture_width, texture_height);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture_width, texture_height, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_1_data);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glBindTexture(GL_TEXTURE_2D, texture_random_noise_2);
@@ -245,8 +227,8 @@ void initialize()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texturewidth, textureheight);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texturewidth, textureheight, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_2_data);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texture_width, texture_height);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture_width, texture_height, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_2_data);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glBindTexture(GL_TEXTURE_2D, texture_random_noise_3);
@@ -254,8 +236,8 @@ void initialize()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texturewidth, textureheight);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texturewidth, textureheight, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_3_data);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texture_width, texture_height);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture_width, texture_height, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_3_data);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glBindTexture(GL_TEXTURE_2D, texture_random_noise_4);
@@ -263,8 +245,8 @@ void initialize()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texturewidth, textureheight);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texturewidth, textureheight, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_4_data);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texture_width, texture_height);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture_width, texture_height, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_4_data);
     glBindTexture(GL_TEXTURE_2D, 0);
 
 
@@ -302,7 +284,7 @@ void initialize()
 
     //invoke compute shader
     programCompute.bind();
-    programCompute.dispatchCompute(texturewidth, textureheight, 1);
+    programCompute.dispatchCompute(texture_width, texture_height, 1);
     programCompute.unbind();
 }
 
@@ -387,3 +369,65 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
   
 }
+
+
+
+// STORAGE AREA FOR OLD CODE: 
+
+// noise texture generation -> replaced with cooler syntax! /alvin
+ ////random noise textures
+    //unsigned char random_noise_1_data[10 * 10 * 4];
+    //for (int row = 0; row < texture_height; row++)    
+    //{
+    //    for (int col = 0; col < texture_width; col++)
+    //    {
+    //        int rand_value = rand() % 255;
+    //       
+    //        random_noise_1_data[((row * texture_width + col) * 4) + 0] = rand_value;
+    //        random_noise_1_data[((row * texture_width + col) * 4) + 1] = rand_value;
+    //        random_noise_1_data[((row * texture_width + col) * 4) + 2] = rand_value;
+    //        random_noise_1_data[((row * texture_width + col) * 4) + 3] = 255; 
+    //    }
+    //}
+
+    //unsigned char random_noise_2_data[10 * 10 * 4];
+    //for (int row = 0; row < texture_height; row++)
+    //{
+    //    for (int col = 0; col < texture_width; col++)
+    //    {
+    //        int rand_value = rand() % 255;
+
+    //        random_noise_2_data[((row * texture_width + col) * 4) + 0] = rand_value;
+    //        random_noise_2_data[((row * texture_width + col) * 4) + 1] = rand_value;
+    //        random_noise_2_data[((row * texture_width + col) * 4) + 2] = rand_value;
+    //        random_noise_2_data[((row * texture_width + col) * 4) + 3] = 255;
+    //    }
+    //}
+
+    //unsigned char random_noise_3_data[10 * 10 * 4];
+    //for (int row = 0; row < texture_height; row++)
+    //{
+    //    for (int col = 0; col < texture_width; col++)
+    //    {
+    //        int rand_value = rand() % 255;
+
+    //        random_noise_3_data[((row * texture_width + col) * 4) + 0] = rand_value;
+    //        random_noise_3_data[((row * texture_width + col) * 4) + 1] = rand_value;
+    //        random_noise_3_data[((row * texture_width + col) * 4) + 2] = rand_value;
+    //        random_noise_3_data[((row * texture_width + col) * 4) + 3] = 255;
+    //    }
+    //}
+
+    //unsigned char random_noise_4_data[10 * 10 * 4];
+    //for (int row = 0; row < texture_height; row++)
+    //{
+    //    for (int col = 0; col < texture_width; col++)
+    //    {
+    //        int rand_value = rand() % 255;
+
+    //        random_noise_4_data[((row * texture_width + col) * 4) + 0] = rand_value;
+    //        random_noise_4_data[((row * texture_width + col) * 4) + 1] = rand_value;
+    //        random_noise_4_data[((row * texture_width + col) * 4) + 2] = rand_value;
+    //        random_noise_4_data[((row * texture_width + col) * 4) + 3] = 255;
+    //    }
+    //}

@@ -144,11 +144,20 @@
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />
+    <ClCompile Include="UtilityFunctions.cpp" />
     <ClCompile Include="Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Debug.h" />
     <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="Texture.h" />
+    <ClInclude Include="UtilityFunctions.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ComputeShader.shader" />
+    <None Include="FragmentShader.shader" />
+    <None Include="GeometryShader.shader" />
+    <None Include="VertexShader.shader" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

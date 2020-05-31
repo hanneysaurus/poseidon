@@ -1,0 +1,11 @@
+
+#include "GLFW/glfw3.h"
+#include "gl/glew.h"
+#include <gl/GL.h>		//standard OpenGL include
+#include <gl/GLU.h>		//OpenGL utilities
+#include "gl/glut.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/noise.hpp"
+
+
+//empty for now
