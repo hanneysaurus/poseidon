@@ -7,5 +7,5 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/noise.hpp"
 
-
-//empty for now
+//int* getBitReversedIndices();
+//int* getBitReversedIndices();

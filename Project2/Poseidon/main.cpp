@@ -18,6 +18,11 @@
 #include "Debug.h"
 #include "UtilityFunctions.h"
 
+#include <bitset> 
+
+
+
+
 // --------------------------------------------------------
 // FUNCTION DECLARATIONS
 
@@ -33,6 +38,9 @@ void initialize();
 // loop functions
 void render();
 
+unsigned int reverseBits(unsigned int n);
+int leftRotate(int n, unsigned int d);
+
 // cleanup functions
 void cleanUp();
 
@@ -42,12 +50,13 @@ void cleanUp();
 // window settings
 GLFWwindow* window = nullptr;
 const int window_width = 800;
-const int window_height = 600;
+const int window_height = 800;
 const char* window_title = "Poseidon";
 
 // shaders
-ShaderProgram programCompute;
+ShaderProgram programTildeHCompute;
 ShaderProgram programRender;
+ShaderProgram programButterflyTextureCompute;
 unsigned int VAO, VBO;
 
 // textures
@@ -60,9 +69,19 @@ unsigned int texture_random_noise_2 = 0;
 unsigned int texture_random_noise_3 = 0;
 unsigned int texture_random_noise_4 = 0;
 
-const unsigned int texture_width = 10;
-const unsigned int texture_height = 10;
+unsigned int texture_butterfly = 0;
 
+const unsigned int texture_width = 64;
+const unsigned int texture_height = 64;
+
+int* bitReversedIndices;
+
+
+
+template <typename T>
+T rol_(T value, int count) {
+    return (value << count) | (value >> (sizeof(T)*CHAR_BIT - count));
+}
 
 // --------------------------------------------------------
 // STRUCTS
@@ -70,6 +89,14 @@ struct Vertex {
     glm::vec3 Position;
     glm::vec2 TexCoord;
 };
+
+
+template <std::size_t N>
+inline int rotate(std::bitset<N>& b, unsigned m)
+{
+    b = b << m | b >> (N - m);
+    return (int)(b.to_ulong());
+}
 
 // --------------------------------------------------------
 // MAIN
@@ -103,7 +130,8 @@ void initialize()
 {
     // create shaderPrograms
     programRender = ShaderProgram("VertexShader.shader", "FragmentShader.shader");
-    programCompute = ShaderProgram("ComputeShader.shader");
+    programTildeHCompute = ShaderProgram("tildehcompute.shader");
+    programButterflyTextureCompute = ShaderProgram("butterflyTextureCompute.shader");
 
     //create vertex objects
     glGenVertexArrays(1, &VAO);
@@ -115,6 +143,7 @@ void initialize()
     glGenTextures(1, &texture_random_noise_2);
     glGenTextures(1, &texture_random_noise_3);
     glGenTextures(1, &texture_random_noise_4);
+    glGenTextures(1, &texture_butterfly);
 
     // setup vertex array
     glBindVertexArray(VAO);
@@ -255,37 +284,109 @@ void initialize()
     glBindImageTexture(1, texture_tilde_h0minusk, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
     // connect texture to read from as sampler in fragment shader
-    unsigned int texture_unit = 1;
-    glBindTextureUnit(texture_unit, texture_tilde_h0k);
+    glBindTextureUnit(1, texture_tilde_h0k);
     int location = glGetUniformLocation(programRender.getID(), "tex1");
-    glProgramUniform1i(programRender.getID(), location, texture_unit);
+    glProgramUniform1i(programRender.getID(), location, 1);
 
-    texture_unit = 2;
-    glBindTextureUnit(texture_unit, texture_tilde_h0minusk);
+    glBindTextureUnit(2, texture_tilde_h0minusk);
     location = glGetUniformLocation(programRender.getID(), "tex2");
-    glProgramUniform1i(programRender.getID(), location, texture_unit);
+    glProgramUniform1i(programRender.getID(), location, 2);
 
     glBindImageTexture(3, texture_random_noise_1, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    location = glGetUniformLocation(programCompute.getID(), "randtex1");
-    glProgramUniform1i(programCompute.getID(), location, 3);
+    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex1");
+    glProgramUniform1i(programTildeHCompute.getID(), location, 3);
 
     glBindImageTexture(4, texture_random_noise_2, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    location = glGetUniformLocation(programCompute.getID(), "randtex2");
-    glProgramUniform1i(programCompute.getID(), location, 4);
+    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex2");
+    glProgramUniform1i(programTildeHCompute.getID(), location, 4);
 
     glBindImageTexture(5, texture_random_noise_3, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    location = glGetUniformLocation(programCompute.getID(), "randtex3");
-    glProgramUniform1i(programCompute.getID(), location, 5);
+    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex3");
+    glProgramUniform1i(programTildeHCompute.getID(), location, 5);
 
     glBindImageTexture(6, texture_random_noise_4, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    location = glGetUniformLocation(programCompute.getID(), "randtex4");
-    glProgramUniform1i(programCompute.getID(), location, 6);
+    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex4");
+    glProgramUniform1i(programTildeHCompute.getID(), location, 6);
 
 
     //invoke compute shader
-    programCompute.bind();
-    programCompute.dispatchCompute(texture_width, texture_height, 1);
-    programCompute.unbind();
+    programTildeHCompute.bind();
+    programTildeHCompute.dispatchCompute(texture_width, texture_height, 1);
+    programTildeHCompute.unbind();
+
+
+
+    /** BUTTERFLY COMPUTE SHADER */
+
+    // define texture
+    glBindTexture(GL_TEXTURE_2D, texture_butterfly);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, texture_width, texture_height);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindImageTexture(0, texture_butterfly, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+
+    glBindTextureUnit(0, texture_butterfly);
+    location = glGetUniformLocation(programRender.getID(), "butterfly_texture");
+    glProgramUniform1i(programRender.getID(), location, 0);
+
+    //Create the buffer
+    GLuint reverseIndicesSSBO;
+    glGenBuffers(1, &reverseIndicesSSBO);
+
+     //Bind it
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndicesSSBO);
+
+
+    bitReversedIndices = new int[32];
+    unsigned int bits = (int)(log(32) / log(2));
+
+    for (int i = 0; i < 32; i++)
+    {
+        unsigned int x = reverseBits(i);
+        std::bitset<8> b(x);
+        x = rotate(b, bits);
+        bitReversedIndices[i] = x;
+
+        /*std::bitset<8> b(15);
+        std::cout << b << '\n';
+        rotate(b, 2);
+        std::cout << b << '\n';*/
+
+
+        std::cout << "index: " << i << " result:" << x << std::endl;
+    }
+
+
+    //bitReversedIndices = new int[32];
+    //unsigned int bits = (int)(log(32) / log(2));
+
+    /*for (int i = 0; i < 32; i++)
+    {
+        unsigned int x = reverseBits(i);
+        x = _rot(x,)
+        bitReversedIndices[i] = x;
+    }*/
+
+ 
+
+    //Set the data of the buffer
+    glBufferData(GL_SHADER_STORAGE_BUFFER, texture_height, bitReversedIndices, GL_STATIC_READ);
+    //glBufferData(target, size, data, usage);
+
+    //Bind the buffer to the correct interface block number
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, reverseIndicesSSBO);
+
+
+    programButterflyTextureCompute.bind();
+    programButterflyTextureCompute.dispatchCompute(texture_width, texture_height, 1);
+    programButterflyTextureCompute.unbind();
+
+
 }
 
 void setUpLibraries()
@@ -341,17 +442,26 @@ void render()
 void cleanUp()
 {
     // delete all objects
-    glDeleteProgram(programCompute.getID());
+    glDeleteProgram(programTildeHCompute.getID());
     glDeleteProgram(programRender.getID());
+    glDeleteProgram(programButterflyTextureCompute.getID());
+    
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
+
     glDeleteTextures(1, &texture_read);
     glDeleteTextures(1, &texture_tilde_h0k);
     glDeleteTextures(1, &texture_tilde_h0minusk);
+
+    glDeleteTextures(1, &texture_butterfly);
+
     glDeleteTextures(1, &texture_random_noise_1);
     glDeleteTextures(1, &texture_random_noise_2);
     glDeleteTextures(1, &texture_random_noise_3);
     glDeleteTextures(1, &texture_random_noise_4);
+
+    // delete array on heap 
+    delete bitReversedIndices;
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -371,63 +481,60 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 }
 
 
+// function to reverse bits of a number 
+unsigned int reverseBits(unsigned int n) 
+{ 
+    unsigned int rev = 0; 
+      
+    // traversing bits of 'n' from the right 
+    while (n > 0) 
+    { 
+        // bitwise left shift  
+        // 'rev' by 1 
+        rev <<= 1; 
+          
+        // if current bit is '1' 
+        if (n & 1 == 1) 
+            rev ^= 1; 
+          
+        // bitwise right shift  
+        // 'n' by 1 
+        n >>= 1; 
+              
+    } 
+      
+    // required number 
+    return rev; 
+} 
 
-// STORAGE AREA FOR OLD CODE: 
 
-// noise texture generation -> replaced with cooler syntax! /alvin
- ////random noise textures
-    //unsigned char random_noise_1_data[10 * 10 * 4];
-    //for (int row = 0; row < texture_height; row++)    
-    //{
-    //    for (int col = 0; col < texture_width; col++)
-    //    {
-    //        int rand_value = rand() % 255;
-    //       
-    //        random_noise_1_data[((row * texture_width + col) * 4) + 0] = rand_value;
-    //        random_noise_1_data[((row * texture_width + col) * 4) + 1] = rand_value;
-    //        random_noise_1_data[((row * texture_width + col) * 4) + 2] = rand_value;
-    //        random_noise_1_data[((row * texture_width + col) * 4) + 3] = 255; 
-    //    }
-    //}
+int leftRotate(int n, unsigned int d) 
+{ 
+      
+    /* In n<<d, last d bits are 0. To 
+     put first 3 bits of n at  
+    last, do bitwise or of n<<d  
+    with n >>(INT_BITS - d) */
+    return (n << d)|(n >> (32 - d)); 
+    
+} 
 
-    //unsigned char random_noise_2_data[10 * 10 * 4];
-    //for (int row = 0; row < texture_height; row++)
-    //{
-    //    for (int col = 0; col < texture_width; col++)
-    //    {
-    //        int rand_value = rand() % 255;
 
-    //        random_noise_2_data[((row * texture_width + col) * 4) + 0] = rand_value;
-    //        random_noise_2_data[((row * texture_width + col) * 4) + 1] = rand_value;
-    //        random_noise_2_data[((row * texture_width + col) * 4) + 2] = rand_value;
-    //        random_noise_2_data[((row * texture_width + col) * 4) + 3] = 255;
-    //    }
-    //}
 
-    //unsigned char random_noise_3_data[10 * 10 * 4];
-    //for (int row = 0; row < texture_height; row++)
-    //{
-    //    for (int col = 0; col < texture_width; col++)
-    //    {
-    //        int rand_value = rand() % 255;
+/**
 
-    //        random_noise_3_data[((row * texture_width + col) * 4) + 0] = rand_value;
-    //        random_noise_3_data[((row * texture_width + col) * 4) + 1] = rand_value;
-    //        random_noise_3_data[((row * texture_width + col) * 4) + 2] = rand_value;
-    //        random_noise_3_data[((row * texture_width + col) * 4) + 3] = 255;
-    //    }
-    //}
-
-    //unsigned char random_noise_4_data[10 * 10 * 4];
-    //for (int row = 0; row < texture_height; row++)
-    //{
-    //    for (int col = 0; col < texture_width; col++)
-    //    {
-    //        int rand_value = rand() % 255;
-
-    //        random_noise_4_data[((row * texture_width + col) * 4) + 0] = rand_value;
-    //        random_noise_4_data[((row * texture_width + col) * 4) + 1] = rand_value;
-    //        random_noise_4_data[((row * texture_width + col) * 4) + 2] = rand_value;
-    //        random_noise_4_data[((row * texture_width + col) * 4) + 3] = 255;
-    //    }
-    //}
+private int[] initBitReversedIndices()
+	{
+		int[] bitReversedIndices = new int[N];
+		int bits = (int) (Math.log(N)/Math.log(2));
+		
+		for (int i = 0; i<N; i++)
+		{
+			int x = Integer.reverse(i);
+			x = Integer.rotateLeft(x, bits);
+			bitReversedIndices[i] = x;
+		}
+		
+		return bitReversedIndices;
+	}
+    */ 

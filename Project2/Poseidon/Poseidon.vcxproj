@@ -154,9 +154,10 @@
     <ClInclude Include="UtilityFunctions.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ComputeShader.shader" />
+    <None Include="ButterflyTextureCompute.shader" />
     <None Include="FragmentShader.shader" />
     <None Include="GeometryShader.shader" />
+    <None Include="TildeHCompute.shader" />
     <None Include="VertexShader.shader" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

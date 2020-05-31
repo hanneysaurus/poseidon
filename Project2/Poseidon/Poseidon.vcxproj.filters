@@ -46,9 +46,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ComputeShader.shader">
-      <Filter>res\shaders</Filter>
-    </None>
     <None Include="FragmentShader.shader">
       <Filter>res\shaders</Filter>
     </None>
@@ -56,6 +53,12 @@
       <Filter>res\shaders</Filter>
     </None>
     <None Include="GeometryShader.shader">
+      <Filter>res\shaders</Filter>
+    </None>
+    <None Include="ButterflyTextureCompute.shader">
+      <Filter>res\shaders</Filter>
+    </None>
+    <None Include="TildeHCompute.shader">
       <Filter>res\shaders</Filter>
     </None>
   </ItemGroup>
