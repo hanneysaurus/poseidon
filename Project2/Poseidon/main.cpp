@@ -21,6 +21,7 @@
 #include <bitset> 
 
 
+#define INT_SIZE 32
 
 
 // --------------------------------------------------------
@@ -80,7 +81,7 @@ int* bitReversedIndices;
 
 template <typename T>
 T rol_(T value, int count) {
-    return (value << count) | (value >> (sizeof(T)*CHAR_BIT - count));
+    return (value << count) | (value >> (sizeof(T) * CHAR_BIT - count));
 }
 
 // --------------------------------------------------------
@@ -109,7 +110,7 @@ int main(void)
 
     //render loop
     while (!glfwWindowShouldClose(window))
-    {        
+    {
         glEnable(GL_BLEND);
         //glBlendFunc(GL_RGB, GL_SRC_ALPHA);
 
@@ -195,9 +196,9 @@ void initialize()
 
             int rand_value = rand() % 255;
 
-            random_noise_1_data[i][j][0] =  rand_value; // RED
-            random_noise_1_data[i][j][1] =  rand_value; // GREEN 
-            random_noise_1_data[i][j][2] =  rand_value; // BLUE
+            random_noise_1_data[i][j][0] = rand_value; // RED
+            random_noise_1_data[i][j][1] = rand_value; // GREEN 
+            random_noise_1_data[i][j][2] = rand_value; // BLUE
             random_noise_1_data[i][j][3] = 255;         //ALPHA
         }
     }
@@ -314,8 +315,6 @@ void initialize()
     programTildeHCompute.dispatchCompute(texture_width, texture_height, 1);
     programTildeHCompute.unbind();
 
-
-
     /** BUTTERFLY COMPUTE SHADER */
 
     // define texture
@@ -329,58 +328,34 @@ void initialize()
 
     glBindImageTexture(0, texture_butterfly, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-
+    // attach butterfly texture as uniform image to write to 
     glBindTextureUnit(0, texture_butterfly);
     location = glGetUniformLocation(programRender.getID(), "butterfly_texture");
     glProgramUniform1i(programRender.getID(), location, 0);
 
-    //Create the buffer
-    GLuint reverseIndicesSSBO;
-    glGenBuffers(1, &reverseIndicesSSBO);
 
-     //Bind it
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndicesSSBO);
-
-
-    bitReversedIndices = new int[32];
-    unsigned int bits = (int)(log(32) / log(2));
-
-    for (int i = 0; i < 32; i++)
-    {
+    bitReversedIndices = new int[texture_height];
+    int bits = (log(texture_height) / log(2));
+    for (int i = 0; i < texture_height; i++)
+    {   
+        // x is the new index that should be stored
         unsigned int x = reverseBits(i);
-        std::bitset<8> b(x);
-        x = rotate(b, bits);
+        // rotate left
+        x = (x << bits) | (x >> (INT_SIZE - bits));
+         
+        //temporary debug
+        std::cout << i << " " << x << std::endl;
         bitReversedIndices[i] = x;
 
-        /*std::bitset<8> b(15);
-        std::cout << b << '\n';
-        rotate(b, 2);
-        std::cout << b << '\n';*/
-
-
-        std::cout << "index: " << i << " result:" << x << std::endl;
     }
 
-
-    //bitReversedIndices = new int[32];
-    //unsigned int bits = (int)(log(32) / log(2));
-
-    /*for (int i = 0; i < 32; i++)
-    {
-        unsigned int x = reverseBits(i);
-        x = _rot(x,)
-        bitReversedIndices[i] = x;
-    }*/
-
- 
-
-    //Set the data of the buffer
-    glBufferData(GL_SHADER_STORAGE_BUFFER, texture_height, bitReversedIndices, GL_STATIC_READ);
-    //glBufferData(target, size, data, usage);
-
-    //Bind the buffer to the correct interface block number
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, reverseIndicesSSBO);
-
+    // Create the buffer that passes bitReversedIndices to butterfly compute shader
+    unsigned int reverseIndicesSSBO;
+    glGenBuffers(1, &reverseIndicesSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndicesSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(int)*texture_height, bitReversedIndices, GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, reverseIndicesSSBO); // buffer assigned to binding index 0
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind the buffer
 
     programButterflyTextureCompute.bind();
     programButterflyTextureCompute.dispatchCompute(texture_width, texture_height, 1);
@@ -445,7 +420,7 @@ void cleanUp()
     glDeleteProgram(programTildeHCompute.getID());
     glDeleteProgram(programRender.getID());
     glDeleteProgram(programButterflyTextureCompute.getID());
-    
+
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
 
@@ -477,64 +452,50 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-  
+
+}
+
+unsigned int reverseBits(unsigned int num)
+{
+    unsigned int  NO_OF_BITS = sizeof(num) * 8;
+    unsigned int reverse_num = 0;
+    int i;
+    for (i = 0; i < NO_OF_BITS; i++)
+    {
+        if ((num & (1 << i)))
+            reverse_num |= 1 << ((NO_OF_BITS - 1) - i);
+    }
+    return reverse_num;
 }
 
 
-// function to reverse bits of a number 
-unsigned int reverseBits(unsigned int n) 
-{ 
-    unsigned int rev = 0; 
-      
-    // traversing bits of 'n' from the right 
-    while (n > 0) 
-    { 
-        // bitwise left shift  
-        // 'rev' by 1 
-        rev <<= 1; 
-          
-        // if current bit is '1' 
-        if (n & 1 == 1) 
-            rev ^= 1; 
-          
-        // bitwise right shift  
-        // 'n' by 1 
-        n >>= 1; 
-              
-    } 
-      
-    // required number 
-    return rev; 
-} 
+int leftRotate(int n, unsigned int d)
+{
 
-
-int leftRotate(int n, unsigned int d) 
-{ 
-      
-    /* In n<<d, last d bits are 0. To 
-     put first 3 bits of n at  
-    last, do bitwise or of n<<d  
+    /* In n<<d, last d bits are 0. To
+     put first 3 bits of n at
+    last, do bitwise or of n<<d
     with n >>(INT_BITS - d) */
-    return (n << d)|(n >> (32 - d)); 
-    
-} 
+    return (n << d) | (n >> (32 - d));
+
+}
 
 
 
 /**
 
 private int[] initBitReversedIndices()
-	{
-		int[] bitReversedIndices = new int[N];
-		int bits = (int) (Math.log(N)/Math.log(2));
-		
-		for (int i = 0; i<N; i++)
-		{
-			int x = Integer.reverse(i);
-			x = Integer.rotateLeft(x, bits);
-			bitReversedIndices[i] = x;
-		}
-		
-		return bitReversedIndices;
-	}
-    */ 
+    {
+        int[] bitReversedIndices = new int[N];
+        int bits = (int) (Math.log(N)/Math.log(2));
+
+        for (int i = 0; i<N; i++)
+        {
+            int x = Integer.reverse(i);
+            x = Integer.rotateLeft(x, bits);
+            bitReversedIndices[i] = x;
+        }
+
+        return bitReversedIndices;
+    }
+    */
