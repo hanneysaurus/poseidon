@@ -9,9 +9,9 @@ layout(binding = 0, rgba32f) uniform writeonly image2D butterfly_texture;
 layout(std430, binding = 0)  buffer reverseIndicesBuffer
 {
 	int reverseIndices[]; 
-};
+} bit_reversed;
 
-struct complexNumber
+struct ComplexNumber
 {
 	float real;
 	float imaginary;
@@ -20,17 +20,50 @@ struct complexNumber
 void main()
 {
 	int N = 100;
+	
+	ivec2 x = ivec2(gl_GlobalInvocationID.xy);
+	float k = mod(x.y * (float(N) / pow(2, x.x + 1)), N);
+	ComplexNumber twiddle = ComplexNumber(cos((2.0 * PI * k) / float(N)), sin((2.0 * PI * k) / float(N)));
+	
+	int butterflyspan = int(pow(2, x.x));
 
-	ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+	int butterflywing = 0;
 
-	// red
-	vec4 color= vec4(1.0,0,0,1);
+	if (mod(x.y, pow(2, x.x + 1)) < pow(2, x.x))
+	{
+		butterflywing = 1;
+	}
+
+	if (x.x == 0)
+	{
+		if (butterflywing == 1)
+		{
+			imageStore(butterfly_texture, x, vec4(twiddle.real, twiddle.imaginary, bit_reversed.reverseIndices[x.y], bit_reversed.reverseIndices[x.y + 1]));
+		}
+		else
+		{
+			imageStore(butterfly_texture, x, vec4(twiddle.real, twiddle.imaginary, bit_reversed.reverseIndices[x.y - 1], bit_reversed.reverseIndices[x.y]));
+		}
+	}
+	else
+	{
+		if (butterflywing == 1)
+		{
+			imageStore(butterfly_texture, x, vec4(twiddle.real, twiddle.imaginary, x.y, x.y + 1));
+		}
+		else
+		{
+			imageStore(butterfly_texture, x, vec4(twiddle.real, twiddle.imaginary, x.y - butterflyspan, x.y));
+		}
+	}
+
+	/*vec4 color = vec4(1.0,0,0,1);
 
 	// test to see if it works (using texture height = 64) -> change color from red to green if it works!
 	if (reverseIndices[1] == 32) {
 		color = vec4(0.0, 1.0, 0.0, 1);
 	}
 
-	imageStore(butterfly_texture, texel, color);
+	imageStore(butterfly_texture, texel, color);*/
 
 }

@@ -199,7 +199,7 @@ void initialize()
             random_noise_1_data[i][j][0] = rand_value; // RED
             random_noise_1_data[i][j][1] = rand_value; // GREEN 
             random_noise_1_data[i][j][2] = rand_value; // BLUE
-            random_noise_1_data[i][j][3] = 255;         //ALPHA
+            random_noise_1_data[i][j][3] = 255;        // ALPHA
         }
     }
 
@@ -323,7 +323,7 @@ void initialize()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, texture_width, texture_height);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, log(texture_width) / log(2), texture_height);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glBindImageTexture(0, texture_butterfly, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
