@@ -57,6 +57,7 @@ const char* window_title = "Poseidon";
 ShaderProgram programTildeHCompute;
 ShaderProgram programRender;
 ShaderProgram programButterflyTextureCompute;
+ShaderProgram programFourierComponentCompute;
 unsigned int VAO, VBO;
 
 // textures
@@ -71,10 +72,20 @@ Texture texture_random_noise_4;
 Texture texture_tilde_h0k;
 Texture texture_tilde_h0minusk;
 Texture texture_butterfly;
+Texture texture_fourier_component_dx;
+Texture texture_fourier_component_dy;
+Texture texture_fourier_component_dz;
 
 int* bitReversedIndices;
 
+//uniform variables
+//float time = 0.0f;
 
+int N = 256;
+int L = 2048;
+float A = 4;
+glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
+float windSpeed = 40;
 
 template <typename T>
 T rol_(T value, int count) {
@@ -130,6 +141,7 @@ void initialize()
     programRender = ShaderProgram("VertexShader.shader", "FragmentShader.shader");
     programTildeHCompute = ShaderProgram("tildehcompute.shader");
     programButterflyTextureCompute = ShaderProgram("butterflyTextureCompute.shader");
+    programFourierComponentCompute = ShaderProgram("fourierComponentCompute.shader");
 
     //create textures
     texture_random_noise_1 = Texture(true, texture_width, texture_height);
@@ -164,12 +176,45 @@ void initialize()
     location = glGetUniformLocation(programRender.getID(), "tex2");
     glProgramUniform1i(programRender.getID(), location, 2);
 
-    texture_butterfly = Texture(false, log(texture_width) / log(2), texture_height);
-    glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(0, texture_butterfly.getID());
-    location = glGetUniformLocation(programRender.getID(), "butterfly_texture");
-    glProgramUniform1i(programRender.getID(), location, 0);
+    //linking h0k and h0minusk to fourier components compute shader 
+    /*location = glGetUniformLocation(programFourierComponentCompute.getID(), "tilde_h0k");
+    glProgramUniform1i(programFourierComponentCompute.getID(), location, 2);*/
 
+
+    texture_butterfly = Texture(false, log(texture_width) / log(2), texture_height);
+    glBindImageTexture(2, texture_butterfly.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindTextureUnit(3, texture_butterfly.getID());
+    location = glGetUniformLocation(programRender.getID(), "butterfly_texture");
+    glProgramUniform1i(programRender.getID(), location, 3);
+
+    /*texture_fourier_component_dx = Texture(false, texture_width, texture_height);
+    glBindImageTexture(5, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindTextureUnit(6, texture_fourier_component_dx.getID());
+    location = glGetUniformLocation(programRender.getID(), "fourier_component_dx");
+    glProgramUniform1i(programRender.getID(), location, 6);
+
+    texture_fourier_component_dy = Texture(false, texture_width, texture_height);
+    glBindImageTexture(7, texture_fourier_component_dy.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindTextureUnit(8, texture_fourier_component_dy.getID());
+    location = glGetUniformLocation(programRender.getID(), "fourier_component_dy");
+    glProgramUniform1i(programRender.getID(), location, 8);*/
+
+    texture_fourier_component_dz = Texture(false, texture_width, texture_height);
+    glBindImageTexture(5, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindTextureUnit(6, texture_fourier_component_dz.getID());
+    location = glGetUniformLocation(programRender.getID(), "fourier_component_dz");
+    glProgramUniform1i(programRender.getID(), location, 6);
+
+
+    //uniform variables
+    location = glGetUniformLocation(programFourierComponentCompute.getID(), "time");
+    glUniform1f(location, 0.0f);
+
+    location = glGetUniformLocation(programFourierComponentCompute.getID(), "N");
+    glUniform1i(location, 1);
+
+    location = glGetUniformLocation(programFourierComponentCompute.getID(), "L");
+    glUniform1i(location, 1);
 
     //create vertex objects
     glGenVertexArrays(1, &VAO);
@@ -230,6 +275,10 @@ void initialize()
     programButterflyTextureCompute.dispatchCompute(texture_width, texture_height, 1);
     programButterflyTextureCompute.unbind();
 
+    programFourierComponentCompute.bind();
+    programFourierComponentCompute.dispatchCompute(texture_width, texture_height, 1);
+    programFourierComponentCompute.unbind();
+
 }
 
 void setUpLibraries()
@@ -272,6 +321,8 @@ void render()
 {
     glClearColor(0.0f, 0.0f, 0.0f, 0);    // background = gray
     glClear(GL_COLOR_BUFFER_BIT);
+
+    
 
     // render quad
     programRender.bind();

@@ -10,6 +10,7 @@ Texture::Texture()
 Texture::Texture(bool readonly, int texture_width, int texture_height)
 {
 	glGenTextures(1, &this->ID);
+
 	glBindTexture(GL_TEXTURE_2D, this->ID);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -39,6 +40,7 @@ Texture::Texture(bool readonly, int texture_width, int texture_height)
 	else {
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, texture_width, texture_height);
 	}
+
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 }

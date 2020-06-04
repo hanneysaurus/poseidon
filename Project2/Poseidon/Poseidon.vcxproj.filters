@@ -61,5 +61,8 @@
     <None Include="TildeHCompute.shader">
       <Filter>res\shaders</Filter>
     </None>
+    <None Include="FourierComponentCompute.shader">
+      <Filter>res\shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
