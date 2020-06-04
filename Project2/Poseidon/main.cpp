@@ -69,11 +69,6 @@ Texture texture_fourier_component_dx;
 Texture texture_fourier_component_dy;
 Texture texture_fourier_component_dz;
 
-int* bitReversedIndices;
-
-// help variables for code readability
-unsigned int location;
-
 // uniform variables
 float fourier_comp_time=0.0f;
 int fourier_comp_N = 256;
@@ -82,10 +77,8 @@ float A = 4;
 glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
 float windSpeed = 40;
 
-template <typename T>
-T rol_(T value, int count) {
-    return (value << count) | (value >> (sizeof(T) * CHAR_BIT - count));
-}
+//misc
+int* bitReversedIndices;
 
 // --------------------------------------------------------
 // STRUCTS
@@ -285,7 +278,6 @@ void setCallbackFunctions(void) {
     glfwSetScrollCallback(window, scroll_callback);
 }
 
-
 void render()
 {
     glClearColor(0.0f, 0.0f, 0.0f, 0);    // background = gray
@@ -298,7 +290,6 @@ void render()
     glBindVertexArray(0);
     programRender.unbind();
 }
-
 
 void cleanUp()
 {
