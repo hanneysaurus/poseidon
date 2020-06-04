@@ -1,3 +1,4 @@
+#pragma once
 #include "ShaderProgram.h"
 
 ShaderProgram::ShaderProgram()
@@ -129,4 +130,24 @@ GLuint ShaderProgram::createShader(const char* filePath, ShaderType type) {
 	}
 
 	return shader;
+
+
+}int ShaderProgram::GetUniformLocation(const std::string& name)
+{
+	int location = glGetUniformLocation(program_id, name.c_str());
+	if (location == -1)
+		std::cout << "No active uniform variable with name " << name << " found" << std::endl;
+
+	return location;
+}
+
+
+void ShaderProgram::SetUniform1i(const std::string& name, int value)
+{
+	glUniform1i(GetUniformLocation(name), value);
+}
+
+void ShaderProgram::SetUniform1f(const std::string& name, float value)
+{
+	glUniform1f(GetUniformLocation(name), value);
 }

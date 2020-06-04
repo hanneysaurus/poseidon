@@ -1,11 +1,7 @@
+#pragma once
 #include "Texture.h"
-
 float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
-
-Texture::Texture()
-{
-
-}
+Texture::Texture() = default;
 
 Texture::Texture(bool readonly, int texture_width, int texture_height)
 {

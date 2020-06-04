@@ -1,14 +1,21 @@
 #pragma once
-
 #include <iostream>
 #include <filesystem>
 #include <sstream>
 #include <fstream>
-#include <gl/glew.h>
+#include "Debug.h"
+#include "OpenGLimports.h"
 
 enum class ShaderType {
 	VERTEX = 0, COMPUTE = 1, FRAGMENT = 2
 };
+
+#include "Debug.h"
+#include "OpenGLimports.h"
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
 
 class ShaderProgram
 {
@@ -25,8 +32,12 @@ public:
 	void bind();
 	void unbind();
 
-private:
+	int GetUniformLocation(const std::string& name);
+	void SetUniform1i(const std::string& name, int value);
+	void SetUniform1f(const std::string& name, float value);
 
+
+private:
 	unsigned int program_id;
 	GLuint createShader(const char* filePath, ShaderType type);
 

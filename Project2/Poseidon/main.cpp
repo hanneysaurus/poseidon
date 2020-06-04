@@ -1,27 +1,18 @@
 #define WIN32_LEAN_AND_MEAN
 #define STB_IMAGE_IMPLEMENTATION
+#define INT_SIZE 32
 
 #include <iostream>
-#include "windows.h"
+#include "OpenGLImports.h"
 
 #include "ShaderProgram.h"
 #include "Texture.h"
-
-#include "GLFW/glfw3.h"
-#include "gl/glew.h"
-#include <gl/GL.h>		// standard OpenGL include
-#include <gl/GLU.h>		// OpenGL utilities
-#include "gl/glut.h"
-#include "glm/glm.hpp"
-#include "glm/gtc/noise.hpp"
 
 #include "Debug.h"
 #include "UtilityFunctions.h"
 
 #include <bitset> 
 
-
-#define INT_SIZE 32
 
 
 // --------------------------------------------------------
@@ -178,6 +169,7 @@ void initialize()
     glBindTextureUnit(0, texture_tilde_h0k.getID());
     location = glGetUniformLocation(programRender.getID(), "tex1");
     glProgramUniform1i(programRender.getID(), location, 0);
+
 
     texture_tilde_h0minusk = Texture(false, texture_width, texture_height);
     glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
