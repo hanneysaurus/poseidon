@@ -123,13 +123,13 @@ int main(void)
 
 void initialize()
 {
-    // create shaderPrograms
+    // create shaders
     programRender = ShaderProgram("VertexShader.shader", "FragmentShader.shader");
     programTildeHCompute = ShaderProgram("tildehcompute.shader");
     programButterflyTextureCompute = ShaderProgram("butterflyTextureCompute.shader");
     programFourierComponentCompute = ShaderProgram("fourierComponentCompute.shader");
 
-    //create vertex objects
+    // create vertex objects
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
 
@@ -163,35 +163,29 @@ void initialize()
     texture_tilde_h0k = Texture(false, texture_width, texture_height);
     glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindTextureUnit(0, texture_tilde_h0k.getID());
-    location = glGetUniformLocation(programRender.getID(), "tex1");
-    glProgramUniform1i(programRender.getID(), location, 0);
+    programRender.SetUniform1i("tilde_h0k",0);
 
     texture_tilde_h0minusk = Texture(false, texture_width, texture_height);
     glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindTextureUnit(1, texture_tilde_h0minusk.getID());
-    location = glGetUniformLocation(programRender.getID(), "tex2");
-    glProgramUniform1i(programRender.getID(), location, 1);
+    programRender.SetUniform1i("h0minusk", 1);
 
     // create hoise textures and bind them as read textures in TildeH compute shader 
     texture_random_noise_1 = Texture(true, texture_width, texture_height);
     glBindImageTexture(3, texture_random_noise_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex1");
-    glProgramUniform1i(programTildeHCompute.getID(), location, 3);
+    programTildeHCompute.SetUniform1i("randtex1", 3);
 
     texture_random_noise_2 = Texture(true, texture_width, texture_height);
     glBindImageTexture(4, texture_random_noise_2.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex2");
-    glProgramUniform1i(programTildeHCompute.getID(), location, 4);
+    programTildeHCompute.SetUniform1i("randtex2", 4);
 
     texture_random_noise_3 = Texture(true, texture_width, texture_height);
     glBindImageTexture(5, texture_random_noise_3.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex3");
-    glProgramUniform1i(programTildeHCompute.getID(), location, 5);
+    programTildeHCompute.SetUniform1i("randtex3", 5);
 
     texture_random_noise_4 = Texture(true, texture_width, texture_height);
     glBindImageTexture(6, texture_random_noise_4.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex4");
-    glProgramUniform1i(programTildeHCompute.getID(), location, 6);
+    programTildeHCompute.SetUniform1i("randtex4", 6);
 
     programTildeHCompute.bindComputeUnbind(texture_width,texture_height);
 
