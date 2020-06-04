@@ -159,7 +159,7 @@ void initialize()
     // --------------------------------------------------------
     /** CREATING TILDE_H0K & TILDE_H0MINUSK TEXTURES */
 
-    // create and bind tilde_hok and tilde_hominusk textures to fragment shader */
+    // bind tilde_hok & tilde_hominusk textures to fragment shader */
     texture_tilde_h0k = Texture(false, texture_width, texture_height);
     glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindTextureUnit(0, texture_tilde_h0k.getID());
@@ -170,7 +170,7 @@ void initialize()
     glBindTextureUnit(1, texture_tilde_h0minusk.getID());
     programRender.SetUniform1i("h0minusk", 1);
 
-    // create hoise textures and bind them as read textures in TildeH compute shader 
+    // bind noise textures as read textures in TildeH compute shader 
     texture_random_noise_1 = Texture(true, texture_width, texture_height);
     glBindImageTexture(3, texture_random_noise_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
     programTildeHCompute.SetUniform1i("randtex1", 3);
@@ -201,7 +201,7 @@ void initialize()
         bitReversedIndices[i] = x;
     }
 
-    // create the buffer that passes bitReversedIndices to butterfly compute shader 
+    // create the buffer that passes bitReversedIndices to butterfly compute shader & bind to butterfly texture compute shader
     unsigned int reverseIndicesSSBO;
     glGenBuffers(1, &reverseIndicesSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndicesSSBO);
@@ -227,7 +227,7 @@ void initialize()
     glBindImageTexture(2, texture_tilde_h0minusk.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
     programFourierComponentCompute.SetUniform1i("h0minusk", 2);
 
-    // create & bind write textures in fourier component compute shader
+    // bind write textures in fourier component compute shader
     texture_fourier_component_dx = Texture(false, texture_width, texture_height);
     glBindImageTexture(3, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindTextureUnit(7, texture_fourier_component_dx.getID());
