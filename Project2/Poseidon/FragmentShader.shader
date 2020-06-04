@@ -15,5 +15,5 @@ out layout(location = 0) vec4 out_color;
 void main() {
     //out_color = texture(tex1, texcoord) + texture(tex2, texcoord);
     //out_color = texture(butterfly_texture, texcoord);
-    out_color = texture(fourier_component_dz, texcoord);
+    out_color = texture(fourier_component_dy, texcoord);
 }

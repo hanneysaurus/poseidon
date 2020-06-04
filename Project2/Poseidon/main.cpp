@@ -143,10 +143,25 @@ void initialize()
     programButterflyTextureCompute = ShaderProgram("butterflyTextureCompute.shader");
     programFourierComponentCompute = ShaderProgram("fourierComponentCompute.shader");
 
-    //create textures
+    int location;
+
+
+    //TILDEHCOMPUTE
+    texture_tilde_h0k = Texture(false, texture_width, texture_height);
+    glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindTextureUnit(0, texture_tilde_h0k.getID());
+    location = glGetUniformLocation(programRender.getID(), "tex1");
+    glProgramUniform1i(programRender.getID(), location, 0);
+
+    texture_tilde_h0minusk = Texture(false, texture_width, texture_height);
+    glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindTextureUnit(1, texture_tilde_h0minusk.getID());
+    location = glGetUniformLocation(programRender.getID(), "tex2");
+    glProgramUniform1i(programRender.getID(), location, 1);
+
     texture_random_noise_1 = Texture(true, texture_width, texture_height);
     glBindImageTexture(3, texture_random_noise_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    int location = glGetUniformLocation(programTildeHCompute.getID(), "randtex1");
+    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex1");
     glProgramUniform1i(programTildeHCompute.getID(), location, 3);
 
     texture_random_noise_2 = Texture(true, texture_width, texture_height);
@@ -164,49 +179,45 @@ void initialize()
     location = glGetUniformLocation(programTildeHCompute.getID(), "randtex4");
     glProgramUniform1i(programTildeHCompute.getID(), location, 6);
 
-    texture_tilde_h0k = Texture(false, texture_width, texture_height);
-    glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(1, texture_tilde_h0k.getID());
-    location = glGetUniformLocation(programRender.getID(), "tex1");
-    glProgramUniform1i(programRender.getID(), location, 1);
+    programTildeHCompute.bind();
+    programTildeHCompute.dispatchCompute(texture_width, texture_height, 1);
+    programTildeHCompute.unbind();
 
-    texture_tilde_h0minusk = Texture(false, texture_width, texture_height);
-    glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(2, texture_tilde_h0minusk.getID());
-    location = glGetUniformLocation(programRender.getID(), "tex2");
-    glProgramUniform1i(programRender.getID(), location, 2);
 
-    //linking h0k and h0minusk to fourier components compute shader 
-    /*location = glGetUniformLocation(programFourierComponentCompute.getID(), "tilde_h0k");
-    glProgramUniform1i(programFourierComponentCompute.getID(), location, 2);*/
 
+
+    // BUTTERFLY
+    bitReversedIndices = new int[texture_height];
+    int bits = (log(texture_height) / log(2));
+    for (int i = 0; i < texture_height; i++)
+    {
+        unsigned int x = reverseBits(i);
+        x = (x << bits) | (x >> (INT_SIZE - bits));
+        bitReversedIndices[i] = x;
+    }
+
+    // Create the buffer that passes bitReversedIndices to butterfly compute shader
+    unsigned int reverseIndicesSSBO;
+    glGenBuffers(1, &reverseIndicesSSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndicesSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(int) * texture_height, bitReversedIndices, GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, reverseIndicesSSBO); // buffer assigned to binding index 0
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind the buffer
 
     texture_butterfly = Texture(false, log(texture_width) / log(2), texture_height);
     glBindImageTexture(2, texture_butterfly.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(3, texture_butterfly.getID());
+    glBindTextureUnit(2, texture_butterfly.getID());
     location = glGetUniformLocation(programRender.getID(), "butterfly_texture");
-    glProgramUniform1i(programRender.getID(), location, 3);
+    glProgramUniform1i(programRender.getID(), location, 2);
 
-    /*texture_fourier_component_dx = Texture(false, texture_width, texture_height);
-    glBindImageTexture(5, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(6, texture_fourier_component_dx.getID());
-    location = glGetUniformLocation(programRender.getID(), "fourier_component_dx");
-    glProgramUniform1i(programRender.getID(), location, 6);
-
-    texture_fourier_component_dy = Texture(false, texture_width, texture_height);
-    glBindImageTexture(7, texture_fourier_component_dy.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(8, texture_fourier_component_dy.getID());
-    location = glGetUniformLocation(programRender.getID(), "fourier_component_dy");
-    glProgramUniform1i(programRender.getID(), location, 8);*/
-
-    texture_fourier_component_dz = Texture(false, texture_width, texture_height);
-    glBindImageTexture(5, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(6, texture_fourier_component_dz.getID());
-    location = glGetUniformLocation(programRender.getID(), "fourier_component_dz");
-    glProgramUniform1i(programRender.getID(), location, 6);
+    programButterflyTextureCompute.bind();
+    programButterflyTextureCompute.dispatchCompute(texture_width, texture_height, 1);
+    programButterflyTextureCompute.unbind();
 
 
-    //uniform variables
+
+
+    //FOURIER
     location = glGetUniformLocation(programFourierComponentCompute.getID(), "time");
     glUniform1f(location, 0.0f);
 
@@ -215,6 +226,32 @@ void initialize()
 
     location = glGetUniformLocation(programFourierComponentCompute.getID(), "L");
     glUniform1i(location, 1);
+
+    texture_fourier_component_dx = Texture(false, texture_width, texture_height);
+    glBindImageTexture(3, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindTextureUnit(7, texture_fourier_component_dx.getID());
+    location = glGetUniformLocation(programRender.getID(), "fourier_component_dx");
+    glProgramUniform1i(programRender.getID(), location, 7);
+
+    texture_fourier_component_dy = Texture(false, texture_width, texture_height);
+    glBindImageTexture(4, texture_fourier_component_dy.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindTextureUnit(8, texture_fourier_component_dy.getID());
+    location = glGetUniformLocation(programRender.getID(), "fourier_component_dy");
+    glProgramUniform1i(programRender.getID(), location, 8);
+
+    texture_fourier_component_dz = Texture(false, texture_width, texture_height);
+    glBindImageTexture(5, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindTextureUnit(9, texture_fourier_component_dz.getID());
+    location = glGetUniformLocation(programRender.getID(), "fourier_component_dz");
+    glProgramUniform1i(programRender.getID(), location, 9);
+
+    programFourierComponentCompute.bind();
+    programFourierComponentCompute.dispatchCompute(texture_width, texture_height, 1);
+    programFourierComponentCompute.unbind();
+
+
+
+
 
     //create vertex objects
     glGenVertexArrays(1, &VAO);
@@ -243,41 +280,6 @@ void initialize()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // BUTTERFLY SHADER
-    bitReversedIndices = new int[texture_height];
-    int bits = (log(texture_height) / log(2));
-    for (int i = 0; i < texture_height; i++)
-    {   
-        // x is the new index that should be stored
-        unsigned int x = reverseBits(i);
-        // rotate left
-        x = (x << bits) | (x >> (INT_SIZE - bits));
-         
-        bitReversedIndices[i] = x;
-
-    }
-
-    // Create the buffer that passes bitReversedIndices to butterfly compute shader
-    unsigned int reverseIndicesSSBO;
-    glGenBuffers(1, &reverseIndicesSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndicesSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(int)*texture_height, bitReversedIndices, GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, reverseIndicesSSBO); // buffer assigned to binding index 0
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind the buffer
-
-    //invoke compute shaders
-    programTildeHCompute.bind();
-    programTildeHCompute.dispatchCompute(texture_width, texture_height, 1);
-    programTildeHCompute.unbind();
-
-    programButterflyTextureCompute.bind();
-    programButterflyTextureCompute.dispatchCompute(texture_width, texture_height, 1);
-    programButterflyTextureCompute.unbind();
-
-    programFourierComponentCompute.bind();
-    programFourierComponentCompute.dispatchCompute(texture_width, texture_height, 1);
-    programFourierComponentCompute.unbind();
 
 }
 
