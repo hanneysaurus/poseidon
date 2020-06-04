@@ -12,12 +12,14 @@ class Texture
 {
 public:
 	Texture();
+	Texture(bool readonly, int width, int height);
 	Texture(const char* textureFilePath);
 	~Texture();
 
-	unsigned int get();
+	GLuint getID();
 
 	void use();
+	void deleteTexture();
 
 private:
 	int width;
@@ -25,7 +27,8 @@ private:
 	int nrChannels;
 
 	unsigned char* data;
-	unsigned int texture;
+	GLuint ID;
+
 };
 
 

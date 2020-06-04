@@ -36,12 +36,11 @@ vec4 gauss_random(ivec2 co) {
 void main() {
 
 	//should be uniforms later
-	int N = 100;
-	int L = 1000;
+	int N = 256;
+	int L = 2048;
 	float A = 4;
 	vec2 windDirection = vec2(1.0f, 1.0f);
 	float windSpeed = 40;
-
 
 	ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
 	vec2 x = vec2(gl_GlobalInvocationID.xy) - float(N) / 2.0;

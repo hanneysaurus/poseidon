@@ -19,7 +19,7 @@ struct ComplexNumber
 
 void main()
 {
-	int N = 100;
+	int N = 256;
 	
 	ivec2 x = ivec2(gl_GlobalInvocationID.xy);
 	float k = mod(x.y * (float(N) / pow(2, x.x + 1)), N);

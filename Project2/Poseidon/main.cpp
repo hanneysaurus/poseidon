@@ -40,7 +40,6 @@ void initialize();
 void render();
 
 unsigned int reverseBits(unsigned int n);
-int leftRotate(int n, unsigned int d);
 
 // cleanup functions
 void cleanUp();
@@ -61,19 +60,17 @@ ShaderProgram programButterflyTextureCompute;
 unsigned int VAO, VBO;
 
 // textures
-unsigned int texture_read = 0;
-unsigned int texture_tilde_h0k = 0;
-unsigned int texture_tilde_h0minusk = 0;
+const unsigned int texture_width = 256;
+const unsigned int texture_height = 256;
 
-unsigned int texture_random_noise_1 = 0;
-unsigned int texture_random_noise_2 = 0;
-unsigned int texture_random_noise_3 = 0;
-unsigned int texture_random_noise_4 = 0;
+Texture texture_random_noise_1;
+Texture texture_random_noise_2;
+Texture texture_random_noise_3;
+Texture texture_random_noise_4;
 
-unsigned int texture_butterfly = 0;
-
-const unsigned int texture_width = 64;
-const unsigned int texture_height = 64;
+Texture texture_tilde_h0k;
+Texture texture_tilde_h0minusk;
+Texture texture_butterfly;
 
 int* bitReversedIndices;
 
@@ -134,17 +131,49 @@ void initialize()
     programTildeHCompute = ShaderProgram("tildehcompute.shader");
     programButterflyTextureCompute = ShaderProgram("butterflyTextureCompute.shader");
 
+    //create textures
+    texture_random_noise_1 = Texture(true, texture_width, texture_height);
+    glBindImageTexture(3, texture_random_noise_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
+    int location = glGetUniformLocation(programTildeHCompute.getID(), "randtex1");
+    glProgramUniform1i(programTildeHCompute.getID(), location, 3);
+
+    texture_random_noise_2 = Texture(true, texture_width, texture_height);
+    glBindImageTexture(4, texture_random_noise_2.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
+    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex2");
+    glProgramUniform1i(programTildeHCompute.getID(), location, 4);
+
+    texture_random_noise_3 = Texture(true, texture_width, texture_height);
+    glBindImageTexture(5, texture_random_noise_3.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
+    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex3");
+    glProgramUniform1i(programTildeHCompute.getID(), location, 5);
+
+    texture_random_noise_4 = Texture(true, texture_width, texture_height);
+    glBindImageTexture(6, texture_random_noise_4.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
+    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex4");
+    glProgramUniform1i(programTildeHCompute.getID(), location, 6);
+
+    texture_tilde_h0k = Texture(false, texture_width, texture_height);
+    glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindTextureUnit(1, texture_tilde_h0k.getID());
+    location = glGetUniformLocation(programRender.getID(), "tex1");
+    glProgramUniform1i(programRender.getID(), location, 1);
+
+    texture_tilde_h0minusk = Texture(false, texture_width, texture_height);
+    glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindTextureUnit(2, texture_tilde_h0minusk.getID());
+    location = glGetUniformLocation(programRender.getID(), "tex2");
+    glProgramUniform1i(programRender.getID(), location, 2);
+
+    texture_butterfly = Texture(false, log(texture_width) / log(2), texture_height);
+    glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindTextureUnit(0, texture_butterfly.getID());
+    location = glGetUniformLocation(programRender.getID(), "butterfly_texture");
+    glProgramUniform1i(programRender.getID(), location, 0);
+
+
     //create vertex objects
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
-    glGenTextures(1, &texture_read);
-    glGenTextures(1, &texture_tilde_h0k);
-    glGenTextures(1, &texture_tilde_h0minusk);
-    glGenTextures(1, &texture_random_noise_1);
-    glGenTextures(1, &texture_random_noise_2);
-    glGenTextures(1, &texture_random_noise_3);
-    glGenTextures(1, &texture_random_noise_4);
-    glGenTextures(1, &texture_butterfly);
 
     // setup vertex array
     glBindVertexArray(VAO);
@@ -170,170 +199,7 @@ void initialize()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-
-    // setup texture that is written to in compute shader and then read from in fragment shader
-    glBindTexture(GL_TEXTURE_2D, texture_tilde_h0k);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, texture_width, texture_height);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glBindTexture(GL_TEXTURE_2D, texture_tilde_h0minusk);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, texture_width, texture_height);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-
-    // create noise data:
-    GLubyte random_noise_1_data[texture_width][texture_width][4];
-    for (int i = 0; i < texture_width; i++) {
-        for (int j = 0; j < texture_height; j++) {
-
-            int rand_value = rand() % 255;
-
-            random_noise_1_data[i][j][0] = rand_value; // RED
-            random_noise_1_data[i][j][1] = rand_value; // GREEN 
-            random_noise_1_data[i][j][2] = rand_value; // BLUE
-            random_noise_1_data[i][j][3] = 255;        // ALPHA
-        }
-    }
-
-    GLubyte random_noise_2_data[texture_width][texture_width][4];
-    for (int i = 0; i < texture_width; i++) {
-        for (int j = 0; j < texture_height; j++) {
-
-            int rand_value = rand() % 255;
-
-            random_noise_2_data[i][j][0] = rand_value;
-            random_noise_2_data[i][j][1] = rand_value;
-            random_noise_2_data[i][j][2] = rand_value;
-            random_noise_2_data[i][j][3] = 255;
-        }
-    }
-
-    GLubyte random_noise_3_data[texture_width][texture_width][4];
-    for (int i = 0; i < texture_width; i++) {
-        for (int j = 0; j < texture_height; j++) {
-
-            int rand_value = rand() % 255;
-
-            random_noise_3_data[i][j][0] = rand_value;
-            random_noise_3_data[i][j][1] = rand_value;
-            random_noise_3_data[i][j][2] = rand_value;
-            random_noise_3_data[i][j][3] = 255;
-        }
-    }
-
-    GLubyte random_noise_4_data[texture_width][texture_width][4];
-    for (int i = 0; i < texture_width; i++) {
-        for (int j = 0; j < texture_height; j++) {
-
-            int rand_value = rand() % 255;
-
-            random_noise_4_data[i][j][0] = rand_value;
-            random_noise_4_data[i][j][1] = rand_value;
-            random_noise_4_data[i][j][2] = rand_value;
-            random_noise_4_data[i][j][3] = 255;
-        }
-    }
-
-    // create and bind textues to store noise data
-    glBindTexture(GL_TEXTURE_2D, texture_random_noise_1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texture_width, texture_height);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture_width, texture_height, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_1_data);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glBindTexture(GL_TEXTURE_2D, texture_random_noise_2);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texture_width, texture_height);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture_width, texture_height, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_2_data);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glBindTexture(GL_TEXTURE_2D, texture_random_noise_3);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texture_width, texture_height);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture_width, texture_height, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_3_data);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glBindTexture(GL_TEXTURE_2D, texture_random_noise_4);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, texture_width, texture_height);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture_width, texture_height, GL_RGBA, GL_UNSIGNED_BYTE, random_noise_4_data);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-
-    // connect texture to write to as image variable in compute shader
-    glBindImageTexture(0, texture_tilde_h0k, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindImageTexture(1, texture_tilde_h0minusk, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
-    // connect texture to read from as sampler in fragment shader
-    glBindTextureUnit(1, texture_tilde_h0k);
-    int location = glGetUniformLocation(programRender.getID(), "tex1");
-    glProgramUniform1i(programRender.getID(), location, 1);
-
-    glBindTextureUnit(2, texture_tilde_h0minusk);
-    location = glGetUniformLocation(programRender.getID(), "tex2");
-    glProgramUniform1i(programRender.getID(), location, 2);
-
-    glBindImageTexture(3, texture_random_noise_1, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex1");
-    glProgramUniform1i(programTildeHCompute.getID(), location, 3);
-
-    glBindImageTexture(4, texture_random_noise_2, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex2");
-    glProgramUniform1i(programTildeHCompute.getID(), location, 4);
-
-    glBindImageTexture(5, texture_random_noise_3, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex3");
-    glProgramUniform1i(programTildeHCompute.getID(), location, 5);
-
-    glBindImageTexture(6, texture_random_noise_4, 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    location = glGetUniformLocation(programTildeHCompute.getID(), "randtex4");
-    glProgramUniform1i(programTildeHCompute.getID(), location, 6);
-
-
-    //invoke compute shader
-    programTildeHCompute.bind();
-    programTildeHCompute.dispatchCompute(texture_width, texture_height, 1);
-    programTildeHCompute.unbind();
-
-    /** BUTTERFLY COMPUTE SHADER */
-
-    // define texture
-    glBindTexture(GL_TEXTURE_2D, texture_butterfly);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, log(texture_width) / log(2), texture_height);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glBindImageTexture(0, texture_butterfly, 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
-    // attach butterfly texture as uniform image to write to 
-    glBindTextureUnit(0, texture_butterfly);
-    location = glGetUniformLocation(programRender.getID(), "butterfly_texture");
-    glProgramUniform1i(programRender.getID(), location, 0);
-
-
+    // BUTTERFLY SHADER
     bitReversedIndices = new int[texture_height];
     int bits = (log(texture_height) / log(2));
     for (int i = 0; i < texture_height; i++)
@@ -343,8 +209,6 @@ void initialize()
         // rotate left
         x = (x << bits) | (x >> (INT_SIZE - bits));
          
-        //temporary debug
-        std::cout << i << " " << x << std::endl;
         bitReversedIndices[i] = x;
 
     }
@@ -357,10 +221,14 @@ void initialize()
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, reverseIndicesSSBO); // buffer assigned to binding index 0
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind the buffer
 
+    //invoke compute shaders
+    programTildeHCompute.bind();
+    programTildeHCompute.dispatchCompute(texture_width, texture_height, 1);
+    programTildeHCompute.unbind();
+
     programButterflyTextureCompute.bind();
     programButterflyTextureCompute.dispatchCompute(texture_width, texture_height, 1);
     programButterflyTextureCompute.unbind();
-
 
 }
 
@@ -424,16 +292,14 @@ void cleanUp()
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
 
-    glDeleteTextures(1, &texture_read);
-    glDeleteTextures(1, &texture_tilde_h0k);
-    glDeleteTextures(1, &texture_tilde_h0minusk);
+    texture_random_noise_1.deleteTexture();
+    texture_random_noise_2.deleteTexture();
+    texture_random_noise_3.deleteTexture();
+    texture_random_noise_4.deleteTexture();
 
-    glDeleteTextures(1, &texture_butterfly);
-
-    glDeleteTextures(1, &texture_random_noise_1);
-    glDeleteTextures(1, &texture_random_noise_2);
-    glDeleteTextures(1, &texture_random_noise_3);
-    glDeleteTextures(1, &texture_random_noise_4);
+    texture_tilde_h0k.deleteTexture();
+    texture_tilde_h0minusk.deleteTexture();
+    texture_butterfly.deleteTexture();
 
     // delete array on heap 
     delete bitReversedIndices;
@@ -467,35 +333,3 @@ unsigned int reverseBits(unsigned int num)
     }
     return reverse_num;
 }
-
-
-int leftRotate(int n, unsigned int d)
-{
-
-    /* In n<<d, last d bits are 0. To
-     put first 3 bits of n at
-    last, do bitwise or of n<<d
-    with n >>(INT_BITS - d) */
-    return (n << d) | (n >> (32 - d));
-
-}
-
-
-
-/**
-
-private int[] initBitReversedIndices()
-    {
-        int[] bitReversedIndices = new int[N];
-        int bits = (int) (Math.log(N)/Math.log(2));
-
-        for (int i = 0; i<N; i++)
-        {
-            int x = Integer.reverse(i);
-            x = Integer.rotateLeft(x, bits);
-            bitReversedIndices[i] = x;
-        }
-
-        return bitReversedIndices;
-    }
-    */
