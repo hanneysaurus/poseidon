@@ -130,24 +130,32 @@ GLuint ShaderProgram::createShader(const char* filePath, ShaderType type) {
 	}
 
 	return shader;
+}
 
+/** 1.binds the shader program to the current context,
+	2.calls dispatch compute with the given x y z dimensions (runs with attached shader program)
+	3.unbinds the shader program, (depth has default value 1 if not given)  */
+void ShaderProgram::bindComputeUnbind(int width, int height, int depth ) {
+	bind();
+	dispatchCompute(width, height, depth);
+	unbind();
+};
 
-}int ShaderProgram::GetUniformLocation(const std::string& name)
+unsigned int ShaderProgram::GetUniformLocation(const std::string& name)
 {
-	int location = glGetUniformLocation(program_id, name.c_str());
+	unsigned int location = glGetUniformLocation(program_id, name.c_str());
 	if (location == -1)
 		std::cout << "No active uniform variable with name " << name << " found" << std::endl;
 
 	return location;
 }
 
-
 void ShaderProgram::SetUniform1i(const std::string& name, int value)
 {
-	glUniform1i(GetUniformLocation(name), value);
+   glProgramUniform1i(program_id, GetUniformLocation(name), value);
 }
 
 void ShaderProgram::SetUniform1f(const std::string& name, float value)
 {
-	glUniform1f(GetUniformLocation(name), value);
+	glProgramUniform1f(program_id, GetUniformLocation(name), value);
 }

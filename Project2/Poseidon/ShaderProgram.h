@@ -29,10 +29,12 @@ public:
 
 	void dispatchCompute(int width, int height, int depth);
 
+	void bindComputeUnbind(int width, int height, int depth=1);
+
 	void bind();
 	void unbind();
 
-	int GetUniformLocation(const std::string& name);
+	unsigned int GetUniformLocation(const std::string& name);
 	void SetUniform1i(const std::string& name, int value);
 	void SetUniform1f(const std::string& name, float value);
 

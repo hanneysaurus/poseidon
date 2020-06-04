@@ -13,9 +13,9 @@ layout(binding = 5, rgba32f)  writeonly uniform image2D fourier_component_dz;
 layout(binding = 6, rgba32f) readonly uniform image2D tilde_h0k;
 layout(binding = 2, rgba32f) readonly uniform image2D h0minusk;
 
-uniform int N /*=256*/;
-uniform int L/*=100*/;
-uniform float time/*=0*/;
+uniform int N;
+uniform int L;
+uniform float time;
 
 struct complex {
 	float real;

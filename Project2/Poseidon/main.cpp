@@ -14,7 +14,6 @@
 #include <bitset> 
 
 
-
 // --------------------------------------------------------
 // FUNCTION DECLARATIONS
 
@@ -30,6 +29,7 @@ void initialize();
 // loop functions
 void render();
 
+// help functions 
 unsigned int reverseBits(unsigned int n);
 
 // cleanup functions
@@ -62,7 +62,9 @@ Texture texture_random_noise_4;
 
 Texture texture_tilde_h0k;
 Texture texture_tilde_h0minusk;
+
 Texture texture_butterfly;
+
 Texture texture_fourier_component_dx;
 Texture texture_fourier_component_dy;
 Texture texture_fourier_component_dz;
@@ -72,7 +74,7 @@ int* bitReversedIndices;
 // help variables for code readability
 unsigned int location;
 
-//uniform variables
+// uniform variables
 float fourier_comp_time=0.0f;
 int fourier_comp_N = 256;
 int fourier_comp_L = 2048;
@@ -91,14 +93,6 @@ struct Vertex {
     glm::vec3 Position;
     glm::vec2 TexCoord;
 };
-
-
-template <std::size_t N>
-inline int rotate(std::bitset<N>& b, unsigned m)
-{
-    b = b << m | b >> (N - m);
-    return (int)(b.to_ulong());
-}
 
 // --------------------------------------------------------
 // MAIN
@@ -126,7 +120,6 @@ int main(void)
     glfwTerminate();
     return 0;
 }
-
 
 void initialize()
 {
@@ -163,13 +156,15 @@ void initialize()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    //create and bind tilde_hok and tilde_hominusk textures to fragment shader
+    // --------------------------------------------------------
+    /** CREATING TILDE_H0K & TILDE_H0MINUSK TEXTURES */
+
+    // create and bind tilde_hok and tilde_hominusk textures to fragment shader */
     texture_tilde_h0k = Texture(false, texture_width, texture_height);
     glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindTextureUnit(0, texture_tilde_h0k.getID());
     location = glGetUniformLocation(programRender.getID(), "tex1");
     glProgramUniform1i(programRender.getID(), location, 0);
-
 
     texture_tilde_h0minusk = Texture(false, texture_width, texture_height);
     glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
@@ -177,7 +172,7 @@ void initialize()
     location = glGetUniformLocation(programRender.getID(), "tex2");
     glProgramUniform1i(programRender.getID(), location, 1);
 
-    // create hoise textures and bind as read textures in programTilde compute shader
+    // create hoise textures and bind them as read textures in TildeH compute shader 
     texture_random_noise_1 = Texture(true, texture_width, texture_height);
     glBindImageTexture(3, texture_random_noise_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
     location = glGetUniformLocation(programTildeHCompute.getID(), "randtex1");
@@ -198,11 +193,11 @@ void initialize()
     location = glGetUniformLocation(programTildeHCompute.getID(), "randtex4");
     glProgramUniform1i(programTildeHCompute.getID(), location, 6);
 
-    programTildeHCompute.bind();
-    programTildeHCompute.dispatchCompute(texture_width, texture_height, 1);
-    programTildeHCompute.unbind();
+    programTildeHCompute.bindComputeUnbind(texture_width,texture_height);
 
-    // BUTTERFLY
+    // --------------------------------------------------------
+    /** CREATING BUTTERFLY TEXTURE */
+
     bitReversedIndices = new int[texture_height];
     int bits = (log(texture_height) / log(2));
     for (int i = 0; i < texture_height; i++)
@@ -212,7 +207,7 @@ void initialize()
         bitReversedIndices[i] = x;
     }
 
-    // Create the buffer that passes bitReversedIndices to butterfly compute shader
+    // create the buffer that passes bitReversedIndices to butterfly compute shader 
     unsigned int reverseIndicesSSBO;
     glGenBuffers(1, &reverseIndicesSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndicesSSBO);
@@ -224,54 +219,41 @@ void initialize()
     texture_butterfly = Texture(false, log(texture_width) / log(2), texture_height);
     glBindImageTexture(2, texture_butterfly.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindTextureUnit(2, texture_butterfly.getID());
-    location = glGetUniformLocation(programRender.getID(), "butterfly_texture");
-    glProgramUniform1i(programRender.getID(), location, 2);
+    programRender.SetUniform1i("butterfly_texture",2);
 
-    programButterflyTextureCompute.bind();
-    programButterflyTextureCompute.dispatchCompute(texture_width, texture_height, 1);
-    programButterflyTextureCompute.unbind();
+    programButterflyTextureCompute.bindComputeUnbind(texture_width, texture_height);
+  
+    // --------------------------------------------------------
+    /** CREATING FOURIER COMPONENT DX/DY/DZ TEXTURES */
 
     // bind read textures in fourier component compute shader
     glBindImageTexture(6, texture_tilde_h0k.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-    location = glGetUniformLocation(programFourierComponentCompute.getID(), "tilde_h0k");
-    glProgramUniform1i(programFourierComponentCompute.getID(), location, 6);
+    programFourierComponentCompute.SetUniform1i("tilde_h0k", 6);
 
     glBindImageTexture(2, texture_tilde_h0minusk.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-    location = glGetUniformLocation(programFourierComponentCompute.getID(), "h0minusk");
-    glProgramUniform1i(programFourierComponentCompute.getID(), location, 2);
+    programFourierComponentCompute.SetUniform1i("h0minusk", 2);
 
     // create & bind write textures in fourier component compute shader
     texture_fourier_component_dx = Texture(false, texture_width, texture_height);
     glBindImageTexture(3, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindTextureUnit(7, texture_fourier_component_dx.getID());
-    location = glGetUniformLocation(programRender.getID(), "fourier_component_dx");
-    glProgramUniform1i(programRender.getID(), location, 7);
+    programRender.SetUniform1i("fourier_component_dx", 7);
 
     texture_fourier_component_dy = Texture(false, texture_width, texture_height);
     glBindImageTexture(4, texture_fourier_component_dy.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindTextureUnit(8, texture_fourier_component_dy.getID());
-    location = glGetUniformLocation(programRender.getID(), "fourier_component_dy");
-    glProgramUniform1i(programRender.getID(), location, 8);
+    programRender.SetUniform1i("fourier_component_dy", 8);
 
     texture_fourier_component_dz = Texture(false, texture_width, texture_height);
     glBindImageTexture(5, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindTextureUnit(9, texture_fourier_component_dz.getID());
-    location = glGetUniformLocation(programRender.getID(), "fourier_component_dz");
-    glProgramUniform1i(programRender.getID(), location, 9);
+    programRender.SetUniform1i("fourier_component_dz", 9);
 
-    programFourierComponentCompute.bind();
+    programFourierComponentCompute.SetUniform1f("time",fourier_comp_time);
+    programFourierComponentCompute.SetUniform1i("N", fourier_comp_N);
+    programFourierComponentCompute.SetUniform1i("L", fourier_comp_L);
 
-    // Fourier component bind uniform variables (only works if you place it between bind and unbind for some reason! must investigate...)
-    location = glGetUniformLocation(programFourierComponentCompute.getID(), "time");
-    glUniform1f(location, fourier_comp_time);
-    location = glGetUniformLocation(programFourierComponentCompute.getID(), "N");
-    glUniform1i(location, fourier_comp_N);
-    location = glGetUniformLocation(programFourierComponentCompute.getID(), "L");
-    glUniform1i(location, fourier_comp_L);
-
-    programFourierComponentCompute.dispatchCompute(texture_width, texture_height, 1);
-    programFourierComponentCompute.unbind();
-
+    programFourierComponentCompute.bindComputeUnbind(texture_width, texture_height);
 }
 
 void setUpLibraries()
@@ -315,8 +297,6 @@ void render()
     glClearColor(0.0f, 0.0f, 0.0f, 0);    // background = gray
     glClear(GL_COLOR_BUFFER_BIT);
 
-    
-
     // render quad
     programRender.bind();
     glBindVertexArray(VAO);
@@ -344,14 +324,10 @@ void cleanUp()
     texture_tilde_h0k.deleteTexture();
     texture_tilde_h0minusk.deleteTexture();
     texture_butterfly.deleteTexture();
-
-  
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-
     if (action != GLFW_RELEASE) return;
-
     switch (key) {
     case GLFW_KEY_ESCAPE:
         glfwSetWindowShouldClose(window, true);
@@ -359,11 +335,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){}
 
-}
-
+/** reverses the bits of a given unsigned int */
 unsigned int reverseBits(unsigned int num)
 {
     unsigned int  NO_OF_BITS = sizeof(num) * 8;

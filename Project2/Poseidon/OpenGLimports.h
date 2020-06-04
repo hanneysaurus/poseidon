@@ -7,4 +7,3 @@
 #include <gl/GLU.h>		// OpenGL utilities
 #include "gl/glut.h"
 #include "glm/glm.hpp"
-#include "glm/gtc/noise.hpp"
