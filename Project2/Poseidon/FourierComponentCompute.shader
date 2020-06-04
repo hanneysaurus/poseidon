@@ -6,8 +6,8 @@ layout(local_size_x = 1, local_size_y = 16) in;
 
 
 // read textures
-layout(binding = 6, rgba32f) readonly uniform image2D tilde_h0k;
-layout(binding = 2, rgba32f) readonly uniform image2D h0minusk;
+layout(binding = 0, rgba32f) readonly uniform image2D tilde_h0k;
+layout(binding = 1, rgba32f) readonly uniform image2D h0minusk;
 
 // write textures
 layout(binding = 3, rgba32f)  writeonly uniform image2D fourier_component_dx;

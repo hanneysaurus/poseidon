@@ -213,12 +213,17 @@ void initialize()
     // --------------------------------------------------------
     /** CREATING FOURIER COMPONENT DX/DY/DZ TEXTURES */
 
-    // bind read textures in fourier component compute shader
-    glBindImageTexture(6, texture_tilde_h0k.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-    programFourierComponentCompute.SetUniform1i("tilde_h0k", 6);
+    /* DISCOVERY: binding points inside the shader (bind = blabla) can be used somehow 
+    to make shaders share the same uniform variables, we have a limited 8 binding points 
+     see below, here binding point 0 and 1 are set inside fourier component shader and the tilde h compute shader
+    resulting in the fourier component shader in being able to use the hkt hminuskt textures */
 
-    glBindImageTexture(2, texture_tilde_h0minusk.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-    programFourierComponentCompute.SetUniform1i("h0minusk", 2);
+    // bind read textures in fourier component compute shader
+    /*glBindImageTexture(6, texture_tilde_h0k.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+    programFourierComponentCompute.SetUniform1i("tilde_h0k", 6);*/
+
+    /*glBindImageTexture(2, texture_tilde_h0minusk.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+    programFourierComponentCompute.SetUniform1i("h0minusk", 2);*/
 
     // bind write textures in fourier component compute shader
     texture_fourier_component_dx = Texture(false, texture_width, texture_height);
