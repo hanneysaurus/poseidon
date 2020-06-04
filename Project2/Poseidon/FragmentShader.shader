@@ -10,7 +10,7 @@ uniform sampler2D fourier_component_dx;
 uniform sampler2D fourier_component_dy;
 uniform sampler2D fourier_component_dz;
 
-out layout(location = 0) vec4 out_color;
+out layout (location = 0) vec4 out_color;
 
 void main() {
     //out_color = texture(tex1, texcoord) + texture(tex2, texcoord);

@@ -78,11 +78,13 @@ Texture texture_fourier_component_dz;
 
 int* bitReversedIndices;
 
-//uniform variables
-//float time = 0.0f;
+// help variables for code readability
+unsigned int location;
 
-int N = 256;
-int L = 2048;
+//uniform variables
+float fourier_comp_time=0.0f;
+int fourier_comp_N = 256;
+int fourier_comp_L = 2048;
 float A = 4;
 glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
 float windSpeed = 40;
@@ -143,10 +145,34 @@ void initialize()
     programButterflyTextureCompute = ShaderProgram("butterflyTextureCompute.shader");
     programFourierComponentCompute = ShaderProgram("fourierComponentCompute.shader");
 
-    int location;
+    //create vertex objects
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
 
+    // setup vertex array
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Vertex), (void*)(0));
+    glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(Vertex), (void*)(sizeof(glm::vec3)));
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glBindVertexArray(0);
 
-    //TILDEHCOMPUTE
+    // setup vertex buffer ( mapping from coordinates (x,y) to texture coord (u,v)
+    Vertex vertices[] = {
+        //    x           y       z      u  v
+        { { -1.0f,    -1.0f,    0 },{ 0, 0 } }, // bottom-left
+        { { +1.0f,    -1.0f,    0 },{ 1, 0 } }, // bottom-right
+        { { +1.0f,    +1.0f,    0 },{ 1, 1 } }, // top-right
+        { { -1.0f,    +1.0f,    0 },{ 0, 1 } }, // top-left
+    };
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    //create and bind tilde_hok and tilde_hominusk textures to fragment shader
     texture_tilde_h0k = Texture(false, texture_width, texture_height);
     glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindTextureUnit(0, texture_tilde_h0k.getID());
@@ -159,6 +185,7 @@ void initialize()
     location = glGetUniformLocation(programRender.getID(), "tex2");
     glProgramUniform1i(programRender.getID(), location, 1);
 
+    // create hoise textures and bind as read textures in programTilde compute shader
     texture_random_noise_1 = Texture(true, texture_width, texture_height);
     glBindImageTexture(3, texture_random_noise_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
     location = glGetUniformLocation(programTildeHCompute.getID(), "randtex1");
@@ -183,9 +210,6 @@ void initialize()
     programTildeHCompute.dispatchCompute(texture_width, texture_height, 1);
     programTildeHCompute.unbind();
 
-
-
-
     // BUTTERFLY
     bitReversedIndices = new int[texture_height];
     int bits = (log(texture_height) / log(2));
@@ -201,8 +225,9 @@ void initialize()
     glGenBuffers(1, &reverseIndicesSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndicesSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(int) * texture_height, bitReversedIndices, GL_STATIC_DRAW);
+    delete[] bitReversedIndices;
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, reverseIndicesSSBO); // buffer assigned to binding index 0
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind the buffer
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind the buffer after use
 
     texture_butterfly = Texture(false, log(texture_width) / log(2), texture_height);
     glBindImageTexture(2, texture_butterfly.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
@@ -214,19 +239,16 @@ void initialize()
     programButterflyTextureCompute.dispatchCompute(texture_width, texture_height, 1);
     programButterflyTextureCompute.unbind();
 
+    // bind read textures in fourier component compute shader
+    glBindImageTexture(6, texture_tilde_h0k.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+    location = glGetUniformLocation(programFourierComponentCompute.getID(), "tilde_h0k");
+    glProgramUniform1i(programFourierComponentCompute.getID(), location, 6);
 
+    glBindImageTexture(2, texture_tilde_h0minusk.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+    location = glGetUniformLocation(programFourierComponentCompute.getID(), "h0minusk");
+    glProgramUniform1i(programFourierComponentCompute.getID(), location, 2);
 
-
-    //FOURIER
-    location = glGetUniformLocation(programFourierComponentCompute.getID(), "time");
-    glUniform1f(location, 0.0f);
-
-    location = glGetUniformLocation(programFourierComponentCompute.getID(), "N");
-    glUniform1i(location, 1);
-
-    location = glGetUniformLocation(programFourierComponentCompute.getID(), "L");
-    glUniform1i(location, 1);
-
+    // create & bind write textures in fourier component compute shader
     texture_fourier_component_dx = Texture(false, texture_width, texture_height);
     glBindImageTexture(3, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindTextureUnit(7, texture_fourier_component_dx.getID());
@@ -246,51 +268,28 @@ void initialize()
     glProgramUniform1i(programRender.getID(), location, 9);
 
     programFourierComponentCompute.bind();
+
+    // Fourier component bind uniform variables (only works if you place it between bind and unbind for some reason! must investigate...)
+    location = glGetUniformLocation(programFourierComponentCompute.getID(), "time");
+    glUniform1f(location, fourier_comp_time);
+    location = glGetUniformLocation(programFourierComponentCompute.getID(), "N");
+    glUniform1i(location, fourier_comp_N);
+    location = glGetUniformLocation(programFourierComponentCompute.getID(), "L");
+    glUniform1i(location, fourier_comp_L);
+
     programFourierComponentCompute.dispatchCompute(texture_width, texture_height, 1);
     programFourierComponentCompute.unbind();
-
-
-
-
-
-    //create vertex objects
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-
-    // setup vertex array
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Vertex), (void*)(0));
-    glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(Vertex), (void*)(sizeof(glm::vec3)));
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glBindVertexArray(0);
-
-
-    // setup vertex buffer
-    // quad
-    Vertex vertices[] = {
-        //    x           y       z      u  v
-        { { -1.0f,    -1.0f,    0 },{ 0, 0 } }, // bottom-left
-        { { +1.0f,    -1.0f,    0 },{ 1, 0 } }, // bottom-right
-        { { +1.0f,    +1.0f,    0 },{ 1, 1 } }, // top-right
-        { { -1.0f,    +1.0f,    0 },{ 0, 1 } }, // top-left
-    };
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 }
 
 void setUpLibraries()
 {
-    //initialize GLFW
+    // initialize GLFW
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW" << std::endl;
     }
 
-    //create window
+    // create window
     window = glfwCreateWindow(window_width, window_height, window_title, NULL, NULL);
     if (!window)
     {
@@ -298,13 +297,13 @@ void setUpLibraries()
         glfwTerminate();
     }
 
-    //set OpenGL version
+    // set OpenGL version
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwMakeContextCurrent(window);
 
-    //initialize GLEW
+    // initialize GLEW
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK)
     {
@@ -354,8 +353,7 @@ void cleanUp()
     texture_tilde_h0minusk.deleteTexture();
     texture_butterfly.deleteTexture();
 
-    // delete array on heap 
-    delete bitReversedIndices;
+  
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
