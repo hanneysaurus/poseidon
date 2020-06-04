@@ -3,6 +3,8 @@
 #define INT_SIZE 32
 
 #include <iostream>
+#include <bitset> 
+
 #include "OpenGLImports.h"
 
 #include "ShaderProgram.h"
@@ -11,7 +13,7 @@
 #include "Debug.h"
 #include "UtilityFunctions.h"
 
-#include <bitset> 
+
 
 
 // --------------------------------------------------------
