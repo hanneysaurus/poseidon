@@ -215,12 +215,11 @@ void initialize()
     // --------------------------------------------------------
     /** CREATING FOURIER COMPONENT DX/DY/DZ TEXTURES */
 
-    // bind image units used  in fourier component compute shader to dx dy dz write textures
-
     // rebind the h0k and h0minusk to image unit 0 and 1, respectively.(a little unsure about this)
     glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
     glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
 
+    // bind image units used  in fourier component compute shader to dx dy dz write textures
     texture_fourier_component_dx = Texture(false, texture_width, texture_height);
     glBindImageTexture(2, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
