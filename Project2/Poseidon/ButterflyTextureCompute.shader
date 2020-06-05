@@ -1,15 +1,16 @@
 #version 450 core
 #define PI 3.1415
 
-layout(local_size_x = 1, local_size_y = 16) in;
-
-layout(binding = 2, rgba32f) uniform writeonly image2D butterfly_texture;
-
 // assigns the contents of the reverseIndicesBuffer to an array. binding index = 0, as defined in main
 layout(std430, binding = 0)  buffer reverseIndicesBuffer
 {
 	int reverseIndices[]; 
 } bit_reversed;
+
+layout(local_size_x = 1, local_size_y = 16) in;
+
+layout(binding = 1, rgba32f) uniform writeonly image2D butterfly_texture;
+
 
 struct ComplexNumber
 {

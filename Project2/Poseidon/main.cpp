@@ -154,35 +154,32 @@ void initialize()
     // --------------------------------------------------------
     /** CREATING TILDE_H0K & TILDE_H0MINUSK TEXTURES */
 
-    // bind tilde_hok & tilde_hominusk textures to fragment shader */
+    // bind tilde_h0k, h0minusk & noise textures 
+    // to image units which are then used by uniform image2Ds in tilde_hk compute shader */
     texture_tilde_h0k = Texture(false, texture_width, texture_height);
     glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(0, texture_tilde_h0k.getID());
-    programRender.SetUniform1i("tilde_h0k",0);
 
     texture_tilde_h0minusk = Texture(false, texture_width, texture_height);
     glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(1, texture_tilde_h0minusk.getID());
-    programRender.SetUniform1i("h0minusk", 1);
 
-    // bind noise textures as read textures in TildeH compute shader 
     texture_random_noise_1 = Texture(true, texture_width, texture_height);
-    glBindImageTexture(3, texture_random_noise_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    programTildeHCompute.SetUniform1i("randtex1", 3);
+    glBindImageTexture(2, texture_random_noise_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
 
     texture_random_noise_2 = Texture(true, texture_width, texture_height);
-    glBindImageTexture(4, texture_random_noise_2.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    programTildeHCompute.SetUniform1i("randtex2", 4);
+    glBindImageTexture(3, texture_random_noise_2.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
 
     texture_random_noise_3 = Texture(true, texture_width, texture_height);
-    glBindImageTexture(5, texture_random_noise_3.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    programTildeHCompute.SetUniform1i("randtex3", 5);
+    glBindImageTexture(4, texture_random_noise_3.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
 
     texture_random_noise_4 = Texture(true, texture_width, texture_height);
-    glBindImageTexture(6, texture_random_noise_4.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-    programTildeHCompute.SetUniform1i("randtex4", 6);
+    glBindImageTexture(5, texture_random_noise_4.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
 
+     // run the tildeHCompute shader to write to textures
     programTildeHCompute.bindComputeUnbind(texture_width,texture_height);
+
+    // bind the resulting textures to fragment shader
+    glBindTextureUnit(0, texture_tilde_h0k.getID());
+    glBindTextureUnit(1, texture_tilde_h0minusk.getID());
 
     // --------------------------------------------------------
     /** CREATING BUTTERFLY TEXTURE */
@@ -196,7 +193,7 @@ void initialize()
         bitReversedIndices[i] = x;
     }
 
-    // create the buffer that passes bitReversedIndices to butterfly compute shader & bind to butterfly texture compute shader
+    // create the buffer that passes bitReversedIndices & bind to binding index
     unsigned int reverseIndicesSSBO;
     glGenBuffers(1, &reverseIndicesSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndicesSSBO);
@@ -205,49 +202,45 @@ void initialize()
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, reverseIndicesSSBO); // buffer assigned to binding index 0
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind the buffer after use
 
+    // run the butterfly texture compute shader
     texture_butterfly = Texture(false, log(texture_width) / log(2), texture_height);
-    glBindImageTexture(2, texture_butterfly.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(2, texture_butterfly.getID());
-    programRender.SetUniform1i("butterfly_texture",2);
+    glBindImageTexture(1, texture_butterfly.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
+    // run the butterfly compute shader to write to butterfly texture
     programButterflyTextureCompute.bindComputeUnbind(texture_width, texture_height);
+
+    // bind resulting butterfly texture to fragment shader
+    glBindTextureUnit(2, texture_butterfly.getID());
   
     // --------------------------------------------------------
     /** CREATING FOURIER COMPONENT DX/DY/DZ TEXTURES */
 
-    /* DISCOVERY: binding points inside the shader (bind = blabla) can be used somehow 
-    to make shaders share the same uniform variables, we have a limited 8 binding points 
-     see below, here binding point 0 and 1 are set inside fourier component shader and the tilde h compute shader
-    resulting in the fourier component shader in being able to use the hkt hminuskt textures */
+    // bind image units used  in fourier component compute shader to dx dy dz write textures
 
-    // bind read textures in fourier component compute shader
-    /*glBindImageTexture(6, texture_tilde_h0k.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-    programFourierComponentCompute.SetUniform1i("tilde_h0k", 6);*/
+    // rebind the h0k and h0minusk to image unit 0 and 1, respectively.(a little unsure about this)
+    glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+    glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
 
-    /*glBindImageTexture(2, texture_tilde_h0minusk.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-    programFourierComponentCompute.SetUniform1i("h0minusk", 2);*/
-
-    // bind write textures in fourier component compute shader
     texture_fourier_component_dx = Texture(false, texture_width, texture_height);
-    glBindImageTexture(3, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(7, texture_fourier_component_dx.getID());
-    programRender.SetUniform1i("fourier_component_dx", 7);
+    glBindImageTexture(2, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
     texture_fourier_component_dy = Texture(false, texture_width, texture_height);
-    glBindImageTexture(4, texture_fourier_component_dy.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(8, texture_fourier_component_dy.getID());
-    programRender.SetUniform1i("fourier_component_dy", 8);
+    glBindImageTexture(3, texture_fourier_component_dy.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
     texture_fourier_component_dz = Texture(false, texture_width, texture_height);
-    glBindImageTexture(5, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    glBindTextureUnit(9, texture_fourier_component_dz.getID());
-    programRender.SetUniform1i("fourier_component_dz", 9);
+    glBindImageTexture(4, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
     programFourierComponentCompute.SetUniform1f("time",fourier_comp_time);
     programFourierComponentCompute.SetUniform1i("N", fourier_comp_N);
     programFourierComponentCompute.SetUniform1i("L", fourier_comp_L);
 
+    // run the programFOurierComponent compute shader to write to dx, dy, dz textures
     programFourierComponentCompute.bindComputeUnbind(texture_width, texture_height);
+
+    // bind resulting dx, dy, dz fourier component textures  to fragment shader
+    glBindTextureUnit(3, texture_fourier_component_dx.getID());
+    glBindTextureUnit(4, texture_fourier_component_dy.getID());
+    glBindTextureUnit(5, texture_fourier_component_dz.getID());
 }
 
 void setUpLibraries()
