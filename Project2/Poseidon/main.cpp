@@ -257,7 +257,7 @@ void initialize()
 
     texture_pingpong_1 = Texture(false, texture_width, texture_height);
     glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
+    
     // bind to fragment shader
     glBindTextureUnit(6, texture_pingpong_0.getID());
     glBindTextureUnit(7, texture_pingpong_1.getID());
