@@ -256,6 +256,7 @@ void initialize()
 
     // --------------------------------------------------------
     /**  BUTTERFLY FOURIER COMPUTATION */ 
+
     glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
 
     texture_pingpong_0 = Texture(false, texture_width, texture_height);
@@ -270,6 +271,7 @@ void initialize()
 
     // --------------------------------------------------------
     /** INVERSION COMPUTE SHADER */
+
     texture_displacement_of_points_on_grid = Texture(false, texture_width, texture_height);
     glBindImageTexture(0, texture_displacement_of_points_on_grid.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
