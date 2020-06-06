@@ -143,7 +143,7 @@ void ShaderProgram::bindComputeUnbind(int width, int height, int depth ) {
 
 unsigned int ShaderProgram::GetUniformLocation(const std::string& name)
 {
-	unsigned int location = glGetUniformLocation(program_id, name.c_str());
+	unsigned int location = glGetUniformLocation(this->program_id, name.c_str());
 	if (location == -1)
 		std::cout << "No active uniform variable with name " << name << " found." << std::endl;
 
@@ -152,10 +152,10 @@ unsigned int ShaderProgram::GetUniformLocation(const std::string& name)
 
 void ShaderProgram::SetUniform1i(const std::string& name, int value)
 {
-   glProgramUniform1i(program_id, GetUniformLocation(name), value);
+	glProgramUniform1i(this->program_id, GetUniformLocation(name), value);
 }
 
 void ShaderProgram::SetUniform1f(const std::string& name, float value)
 {
-	glProgramUniform1f(program_id, GetUniformLocation(name), value);
+	glProgramUniform1f(this->program_id, GetUniformLocation(name), value);
 }

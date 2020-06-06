@@ -51,6 +51,7 @@ ShaderProgram programTildeHCompute;
 ShaderProgram programRender;
 ShaderProgram programButterflyTextureCompute;
 ShaderProgram programFourierComponentCompute;
+ShaderProgram programButterflyCompute;
 unsigned int VAO, VBO;
 
 // textures
@@ -71,10 +72,18 @@ Texture texture_fourier_component_dx;
 Texture texture_fourier_component_dy;
 Texture texture_fourier_component_dz;
 
+Texture texture_pingpong_0;
+Texture texture_pingpong_1;
+
 // uniform variables
 float fourier_comp_time=0.0f;
 int fourier_comp_N = 256;
 int fourier_comp_L = 2048;
+
+int butterfly_comp_stage = 0;
+int butterfly_comp_pingpong_index = 0;
+int butterfly_comp_direction = 1;
+
 float A = 4;
 glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
 float windSpeed = 40;
@@ -123,10 +132,11 @@ void initialize()
     programTildeHCompute = ShaderProgram("tildehcompute.shader");
     programButterflyTextureCompute = ShaderProgram("butterflyTextureCompute.shader");
     programFourierComponentCompute = ShaderProgram("fourierComponentCompute.shader");
+    programButterflyCompute = ShaderProgram("butterflyCompute.shader");
 
     // create vertex objects
     glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &VBO); 
 
     // setup vertex array
     glBindVertexArray(VAO);
@@ -136,7 +146,7 @@ void initialize()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
-    glBindVertexArray(0);
+    glBindVertexArray(0); 
 
     // setup vertex buffer ( mapping from coordinates (x,y) to texture coord (u,v)
     Vertex vertices[] = {
@@ -229,7 +239,7 @@ void initialize()
     texture_fourier_component_dz = Texture(false, texture_width, texture_height);
     glBindImageTexture(4, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-    programFourierComponentCompute.SetUniform1f("time",fourier_comp_time);
+    programFourierComponentCompute.SetUniform1f("time", fourier_comp_time);
     programFourierComponentCompute.SetUniform1i("N", fourier_comp_N);
     programFourierComponentCompute.SetUniform1i("L", fourier_comp_L);
 
@@ -239,7 +249,21 @@ void initialize()
     // bind resulting dx, dy, dz fourier component textures  to fragment shader
     glBindTextureUnit(3, texture_fourier_component_dx.getID());
     glBindTextureUnit(4, texture_fourier_component_dy.getID());
-    glBindTextureUnit(5, texture_fourier_component_dz.getID());
+    glBindTextureUnit(5, texture_fourier_component_dz.getID()); 
+
+
+    // BUTTERFLY COMPUTE 
+    texture_pingpong_0 = Texture(false, texture_width, texture_height);
+    glBindImageTexture(6, texture_pingpong_0.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    texture_pingpong_1 = Texture(false, texture_width, texture_height);
+    glBindImageTexture(7, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    glBindImageTexture(2, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+
+    glBindTextureUnit(6, texture_pingpong_0.getID());
+    glBindTextureUnit(7, texture_pingpong_1.getID());
+
 }
 
 void setUpLibraries()
@@ -261,7 +285,7 @@ void setUpLibraries()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(window); 
 
     // initialize GLEW
     glewExperimental = GL_TRUE;
@@ -282,6 +306,14 @@ void render()
     glClearColor(0.0f, 0.0f, 0.0f, 0);    // background = gray
     glClear(GL_COLOR_BUFFER_BIT);
 
+    butterfly_comp_stage++;
+    programButterflyCompute.SetUniform1i("stage", butterfly_comp_stage);
+    butterfly_comp_pingpong_index = (!butterfly_comp_pingpong_index);
+    programButterflyCompute.SetUniform1i("pingpong_index", butterfly_comp_pingpong_index);
+    butterfly_comp_direction = (!butterfly_comp_direction);
+    programButterflyCompute.SetUniform1i("direction", butterfly_comp_direction);
+    programButterflyCompute.bindComputeUnbind(texture_width, texture_height);
+
     // render quad
     programRender.bind();
     glBindVertexArray(VAO);
@@ -296,6 +328,8 @@ void cleanUp()
     glDeleteProgram(programTildeHCompute.getID());
     glDeleteProgram(programRender.getID());
     glDeleteProgram(programButterflyTextureCompute.getID());
+    glDeleteProgram(programFourierComponentCompute.getID());
+    glDeleteProgram(programButterflyCompute.getID());
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
@@ -308,6 +342,9 @@ void cleanUp()
     texture_tilde_h0k.deleteTexture();
     texture_tilde_h0minusk.deleteTexture();
     texture_butterfly.deleteTexture();
+
+    texture_pingpong_0.deleteTexture();
+    texture_pingpong_1.deleteTexture();
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {

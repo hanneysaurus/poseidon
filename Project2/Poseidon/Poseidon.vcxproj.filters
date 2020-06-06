@@ -67,5 +67,8 @@
     <None Include="FourierComponentCompute.shader">
       <Filter>res\shaders</Filter>
     </None>
+    <None Include="ButterflyCompute.shader">
+      <Filter>res\shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

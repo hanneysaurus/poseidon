@@ -14,7 +14,6 @@ layout(binding = 2, rgba32f)  writeonly uniform image2D fourier_component_dx;
 layout(binding = 3, rgba32f)  writeonly uniform image2D fourier_component_dy;
 layout(binding = 4, rgba32f)  writeonly uniform image2D fourier_component_dz;
 
-
 uniform int N;
 uniform int L;
 uniform float time;
