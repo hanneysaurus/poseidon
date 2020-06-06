@@ -55,9 +55,6 @@
     <None Include="VertexShader.shader">
       <Filter>res\shaders</Filter>
     </None>
-    <None Include="GeometryShader.shader">
-      <Filter>res\shaders</Filter>
-    </None>
     <None Include="ButterflyTextureCompute.shader">
       <Filter>res\shaders</Filter>
     </None>
@@ -68,6 +65,9 @@
       <Filter>res\shaders</Filter>
     </None>
     <None Include="ButterflyCompute.shader">
+      <Filter>res\shaders</Filter>
+    </None>
+    <None Include="InversionCompute.shader">
       <Filter>res\shaders</Filter>
     </None>
   </ItemGroup>

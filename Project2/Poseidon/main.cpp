@@ -73,6 +73,8 @@ Texture texture_fourier_component_dz;
 Texture texture_pingpong_0;
 Texture texture_pingpong_1;
 
+Texture texture_displacement_of_points_on_grid;
+
 // uniform variables
 float fourier_comp_time=0.0f;
 int fourier_comp_N = 256;
@@ -81,6 +83,9 @@ int fourier_comp_L = 2048;
 int butterfly_comp_stage = 0;
 int butterfly_comp_pingpong_index = 0;
 int butterfly_comp_direction = 1;
+
+int pingpong;
+int N;
 
 float A = 4;
 glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
@@ -249,7 +254,8 @@ void initialize()
     glBindTextureUnit(4, texture_fourier_component_dy.getID());
     glBindTextureUnit(5, texture_fourier_component_dz.getID()); 
 
-    // BUTTERFLY COMPUTE 
+    // --------------------------------------------------------
+    /**  BUTTERFLY FOURIER COMPUTATION */ 
     glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
 
     texture_pingpong_0 = Texture(false, texture_width, texture_height);
@@ -258,9 +264,19 @@ void initialize()
     texture_pingpong_1 = Texture(false, texture_width, texture_height);
     glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     
-    // bind to fragment shader
+    // bind ping pong textures to fragment shader
     glBindTextureUnit(6, texture_pingpong_0.getID());
     glBindTextureUnit(7, texture_pingpong_1.getID());
+
+    // --------------------------------------------------------
+    /** INVERSION COMPUTE SHADER */
+    texture_displacement_of_points_on_grid = Texture(false, texture_width, texture_height);
+    glBindImageTexture(0, texture_displacement_of_points_on_grid.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    glBindImageTexture(1, texture_pingpong_0.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+    glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+
+    // not binding to fragment shader yet since no empty spots! 
 }
 
 void setUpLibraries()
@@ -342,6 +358,8 @@ void cleanUp()
 
     texture_pingpong_0.deleteTexture();
     texture_pingpong_1.deleteTexture();
+
+    texture_displacement_of_points_on_grid.deleteTexture();
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
