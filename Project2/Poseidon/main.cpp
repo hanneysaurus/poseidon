@@ -14,8 +14,6 @@
 #include "UtilityFunctions.h"
 
 
-
-
 // --------------------------------------------------------
 // FUNCTION DECLARATIONS
 
@@ -253,14 +251,15 @@ void initialize()
 
 
     // BUTTERFLY COMPUTE 
+    glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+
     texture_pingpong_0 = Texture(false, texture_width, texture_height);
-    glBindImageTexture(6, texture_pingpong_0.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindImageTexture(1, texture_pingpong_0.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
     texture_pingpong_1 = Texture(false, texture_width, texture_height);
-    glBindImageTexture(7, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-    glBindImageTexture(2, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-
+    // bind to fragment shader
     glBindTextureUnit(6, texture_pingpong_0.getID());
     glBindTextureUnit(7, texture_pingpong_1.getID());
 
