@@ -249,7 +249,6 @@ void initialize()
     glBindTextureUnit(4, texture_fourier_component_dy.getID());
     glBindTextureUnit(5, texture_fourier_component_dz.getID()); 
 
-
     // BUTTERFLY COMPUTE 
     glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
 
@@ -262,7 +261,6 @@ void initialize()
     // bind to fragment shader
     glBindTextureUnit(6, texture_pingpong_0.getID());
     glBindTextureUnit(7, texture_pingpong_1.getID());
-
 }
 
 void setUpLibraries()
