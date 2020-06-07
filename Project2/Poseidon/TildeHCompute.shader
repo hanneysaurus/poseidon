@@ -19,8 +19,8 @@ float rand(vec2 co) {
 vec4 gauss_random(ivec2 co) {
 	float noise1 = clamp(imageLoad(randtex1, co).r, 0.001, 1.0);
 	float noise2 = clamp(imageLoad(randtex1, co).r, 0.001, 1.0);
-	float noise3 = clamp(imageLoad(randtex1, co).r, 0.001, 1.0);
-	float noise4 = clamp(imageLoad(randtex4, co).r, 0.001, 1.0);
+	float noise3 = clamp(imageLoad(randtex2, co).r, 0.001, 1.0);
+	float noise4 = clamp(imageLoad(randtex2, co).r, 0.001, 1.0);
 
 	float u0 = 2.0 * PI * noise1;
 	float v0 = sqrt(-2.0 * log(noise2));
