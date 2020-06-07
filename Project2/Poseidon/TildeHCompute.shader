@@ -36,7 +36,7 @@ void main() {
 
 	//should be uniforms later
 	int N = 256;
-	int L = 2048;
+	int L = 1000;
 	float A = 4;
 	vec2 windDirection = vec2(1.0f, 1.0f);
 	float windSpeed = 40;

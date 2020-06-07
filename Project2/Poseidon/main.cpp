@@ -190,9 +190,7 @@ void initialize()
      // run the tildeHCompute shader to write to textures
     programTildeHCompute.bindComputeUnbind(texture_width,texture_height);
 
-    // bind the resulting textures to fragment shader
-    glBindTextureUnit(0, texture_tilde_h0k.getID());
-    glBindTextureUnit(1, texture_tilde_h0minusk.getID());
+    
 
     // --------------------------------------------------------
     /** CREATING BUTTERFLY TEXTURE */
@@ -222,8 +220,7 @@ void initialize()
     // run the butterfly compute shader to write to butterfly texture
     programButterflyTextureCompute.bindComputeUnbind(texture_width, texture_height);
 
-    // bind resulting butterfly texture to fragment shader
-    glBindTextureUnit(2, texture_butterfly.getID());
+ 
   
     // --------------------------------------------------------
     /** CREATING FOURIER COMPONENT DX/DY/DZ TEXTURES */
@@ -249,10 +246,7 @@ void initialize()
     // run the programFOurierComponent compute shader to write to dx, dy, dz textures
     programFourierComponentCompute.bindComputeUnbind(texture_width, texture_height);
 
-    // bind resulting dx, dy, dz fourier component textures  to fragment shader
-    glBindTextureUnit(3, texture_fourier_component_dx.getID());
-    glBindTextureUnit(4, texture_fourier_component_dy.getID());
-    glBindTextureUnit(5, texture_fourier_component_dz.getID()); 
+ 
 
     // --------------------------------------------------------
     /**  BUTTERFLY FOURIER COMPUTATION */ 
@@ -277,8 +271,23 @@ void initialize()
 
     glBindImageTexture(1, texture_pingpong_0.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
     glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-
+   
     // not binding to fragment shader yet since no empty spots! 
+
+
+    // CONNECT TO FRAGMENT SHADER (MOVED HERE TO DEBUG) 
+
+    // bind the resulting textures to fragment shader
+    glBindTextureUnit(0, texture_tilde_h0k.getID());
+    glBindTextureUnit(1, texture_tilde_h0minusk.getID());
+
+    // bind resulting butterfly texture to fragment shader
+    glBindTextureUnit(2, texture_butterfly.getID());
+
+    // bind resulting dx, dy, dz fourier component textures  to fragment shader
+    glBindTextureUnit(3, texture_fourier_component_dx.getID());
+    glBindTextureUnit(4, texture_fourier_component_dy.getID());
+    glBindTextureUnit(5, texture_fourier_component_dz.getID());
 }
 
 void setUpLibraries()
