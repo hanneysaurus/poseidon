@@ -24,7 +24,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 // setup functions
 void setUpLibraries();
 void setCallbackFunctions();
-void initialize();
 
 // fft functions
 void init_VAO_and_shaders();
@@ -180,17 +179,17 @@ int main(void)
     // --------------------------------------------------------
     ///** INVERSION COMPUTE SHADER */
 
-    //texture_displacement_of_points_on_grid = Texture(false, N, M);
+    texture_displacement_of_points_on_grid = Texture(false, N, M);
 
-    //glBindImageTexture(0, texture_displacement_of_points_on_grid.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    //glBindImageTexture(1, texture_pingpong_0.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-    //glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+    glBindImageTexture(0, texture_displacement_of_points_on_grid.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindImageTexture(1, texture_fourier_component_dy.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+    glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
 
-   /*programInversionCompute.SetUniform1i("pingpong", pingpong);
-   programInversionCompute.SetUniform1i("N", N);*/
+    programInversionCompute.SetUniform1i("pingpong", pingpong);
+    programInversionCompute.SetUniform1i("N", N);
 
-   //programInversionCompute.compute(N, M);
-    // the displacement output is not yet bound to any shader 
+    programInversionCompute.compute(N, M);
+    //the displacement output is not yet bound to any shader 
 
 
 
@@ -208,7 +207,7 @@ int main(void)
     glBindTextureUnit(5, texture_fourier_component_dz.getID());
 
     // bind ping pong textures to fragment shader
-    glBindTextureUnit(6, texture_pingpong_0.getID());
+    glBindTextureUnit(6, texture_displacement_of_points_on_grid.getID());
     glBindTextureUnit(7, texture_pingpong_1.getID());
 
     //connect displacement texture to the fragment shader
@@ -240,7 +239,7 @@ void init_VAO_and_shaders()
     programButterflyTextureCompute = ShaderProgram("butterflyTextureCompute.shader");
     programFourierComponentCompute = ShaderProgram("fourierComponentCompute.shader");
     programButterflyCompute = ShaderProgram("butterflyCompute.shader");
-    //programInversionCompute = ShaderProgram("InversionCompute.shader");
+    programInversionCompute = ShaderProgram("inversionCompute.shader");
 
     // create vertex objects
     glGenVertexArrays(1, &VAO);
@@ -382,7 +381,7 @@ void cleanUp()
     glDeleteProgram(programButterflyTextureCompute.getID());
     glDeleteProgram(programFourierComponentCompute.getID());
     glDeleteProgram(programButterflyCompute.getID());
-    //glDeleteProgram(programInversionCompute.getID());
+    glDeleteProgram(programInversionCompute.getID());
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);

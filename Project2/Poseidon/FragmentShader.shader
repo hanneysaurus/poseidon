@@ -8,7 +8,7 @@ layout(binding = 2) uniform sampler2D butterfly_texture;
 layout(binding = 3) uniform sampler2D fourier_component_dx;
 layout(binding = 4) uniform sampler2D fourier_component_dy;
 layout(binding = 5) uniform sampler2D fourier_component_dz;
-layout(binding = 6) uniform sampler2D pingpong_0;
+layout(binding = 6) uniform sampler2D displacement;
 layout(binding = 7) uniform sampler2D pingpong_1;
 //layout(binding = 8) uniform sampler2D displacement;
 
@@ -20,6 +20,6 @@ void main() {
     //out_color = texture(tilde_h0k, texcoord) + texture(h0minusk, texcoord);
     //out_color = texture(butterfly_texture, texcoord);
     //out_color = texture(fourier_component_dy, texcoord);
-    out_color = texture(pingpong_1, texcoord);
-    //out_color = texture(displacement, texcoord);
+    //out_color = texture(pingpong_1, texcoord);
+    out_color = texture(displacement, texcoord);
 }
