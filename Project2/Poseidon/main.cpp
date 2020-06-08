@@ -26,6 +26,11 @@ void setUpLibraries();
 void setCallbackFunctions();
 void initialize();
 
+// fft functions
+void init_VAO_and_shaders();
+void create_h0k_h0minusk_textures();
+void create_butterfly_texture();
+
 // loop functions
 void render();
 
@@ -50,6 +55,7 @@ ShaderProgram programRender;
 ShaderProgram programButterflyTextureCompute;
 ShaderProgram programFourierComponentCompute;
 ShaderProgram programButterflyCompute;
+ShaderProgram programInversionCompute;
 unsigned int VAO, VBO;
 
 
@@ -94,6 +100,8 @@ float windSpeed = 40;
 
 //misc
 int* bitReversedIndices;
+const int log_2_N = (int)(log(N)/log(2));
+int pingpong;
 
 // --------------------------------------------------------
 // STRUCTS
@@ -109,9 +117,102 @@ int main(void)
     setUpLibraries();
     setCallbackFunctions();
 
-    initialize();
+    init_VAO_and_shaders();
+
+    create_h0k_h0minusk_textures();
+    create_butterfly_texture();
+
+    // --------------------------------------------------------
+    /** CREATING FOURIER COMPONENT DX/DY/DZ TEXTURES */
+
+    // rebind the h0k and h0minusk to image unit 0 and 1, respectively.(a little unsure about this)
+    glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+    glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+
+    // bind image units used  in fourier component compute shader to dx dy dz write textures
+    texture_fourier_component_dx = Texture(false, N, M);
+    glBindImageTexture(2, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    texture_fourier_component_dy = Texture(false, N, M);
+    glBindImageTexture(3, texture_fourier_component_dy.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    texture_fourier_component_dz = Texture(false, N, M);
+    glBindImageTexture(4, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    programFourierComponentCompute.SetUniform1f("time", fourier_comp_time);
+    programFourierComponentCompute.SetUniform1i("N", fourier_comp_N);
+    programFourierComponentCompute.SetUniform1i("L", fourier_comp_L);
+
+    // run the programFourierComponent compute shader to write to dx, dy, dz textures
+    programFourierComponentCompute.compute(N, M);
+
+    // --------------------------------------------------------
+    /**  BUTTERFLY FOURIER COMPUTATION */
+
+    glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+
+    texture_pingpong_0 = Texture(false, N, M);
+    glBindImageTexture(1, texture_pingpong_0.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    texture_pingpong_1 = Texture(false, N, M);
+    glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    pingpong = 0;
+
+    // 1 dim FFT in horizontal direction 
+    for (int stage = 0; stage < log_2_N; stage++)
+    {
+        programButterflyCompute.updateButterflyComputeUniforms(pingpong, 0, stage);
+        programButterflyCompute.compute(N, M);
+        glFinish();
+        pingpong = !pingpong;
+    }
+
+    // 1 dim FFT in vertical direction  
+    for (int stage = 0; stage < log_2_N; stage++)
+    {
+        programButterflyCompute.updateButterflyComputeUniforms(pingpong, 1, stage);
+        programButterflyCompute.compute(N, M);
+        glFinish();
+        pingpong = !pingpong;
+    }
+
+    // --------------------------------------------------------
+    ///** INVERSION COMPUTE SHADER */
+
+    //texture_displacement_of_points_on_grid = Texture(false, N, M);
+
+    //glBindImageTexture(0, texture_displacement_of_points_on_grid.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    //glBindImageTexture(1, texture_pingpong_0.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+    //glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+
+   /*programInversionCompute.SetUniform1i("pingpong", pingpong);
+   programInversionCompute.SetUniform1i("N", N);*/
+
+   //programInversionCompute.compute(N, M);
+    // the displacement output is not yet bound to any shader 
 
 
+
+    // CONNECT TO FRAGMENT SHADER
+    // bind the resulting textures to fragment shader
+    glBindTextureUnit(0, texture_tilde_h0k.getID());
+    glBindTextureUnit(1, texture_tilde_h0minusk.getID());
+
+    // bind resulting butterfly texture to fragment shader
+    glBindTextureUnit(2, texture_butterfly.getID());
+
+    // bind resulting dx, dy, dz fourier component textures  to fragment shader
+    glBindTextureUnit(3, texture_fourier_component_dx.getID());
+    glBindTextureUnit(4, texture_fourier_component_dy.getID());
+    glBindTextureUnit(5, texture_fourier_component_dz.getID());
+
+    // bind ping pong textures to fragment shader
+    glBindTextureUnit(6, texture_pingpong_0.getID());
+    glBindTextureUnit(7, texture_pingpong_1.getID());
+
+    //connect displacement texture to the fragment shader
+    //glBindTextureUnit(8, texture_displacement_of_points_on_grid.getID());
 
     //render loop
     while (!glfwWindowShouldClose(window))
@@ -131,12 +232,7 @@ int main(void)
     return 0;
 }
 
-
-
-
-
-
-void initialize()
+void init_VAO_and_shaders()
 {
     // create shaders
     programRender = ShaderProgram("VertexShader.shader", "FragmentShader.shader");
@@ -144,10 +240,11 @@ void initialize()
     programButterflyTextureCompute = ShaderProgram("butterflyTextureCompute.shader");
     programFourierComponentCompute = ShaderProgram("fourierComponentCompute.shader");
     programButterflyCompute = ShaderProgram("butterflyCompute.shader");
+    //programInversionCompute = ShaderProgram("InversionCompute.shader");
 
     // create vertex objects
     glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO); 
+    glGenBuffers(1, &VBO);
 
     // setup vertex array
     glBindVertexArray(VAO);
@@ -157,7 +254,7 @@ void initialize()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
-    glBindVertexArray(0); 
+    glBindVertexArray(0);
 
     // setup vertex buffer ( mapping from coordinates (x,y) to texture coord (u,v)
     Vertex vertices[] = {
@@ -172,8 +269,9 @@ void initialize()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    // --------------------------------------------------------
-    /** CREATING TILDE_H0K & TILDE_H0MINUSK TEXTURES */
+}
+
+void create_h0k_h0minusk_textures() {
 
     // bind tilde_h0k, h0minusk & noise textures 
     // to image units which are then used by uniform image2Ds in tilde_hk compute shader */
@@ -195,13 +293,12 @@ void initialize()
     texture_random_noise_4 = Texture(true, N, M);
     glBindImageTexture(5, texture_random_noise_4.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
 
-     // run the tildeHCompute shader to write to textures
-    programTildeHCompute.bindComputeUnbind(N,M);
+    // run the tildeHCompute shader to write to textures
+    programTildeHCompute.compute(N, M);
 
-    
+}
 
-    // --------------------------------------------------------
-    /** CREATING BUTTERFLY TEXTURE */
+void create_butterfly_texture() {
 
     bitReversedIndices = new int[M];
     int bits = (log(M) / log(2));
@@ -226,76 +323,7 @@ void initialize()
     glBindImageTexture(1, texture_butterfly.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
     // run the butterfly compute shader to write to butterfly texture
-    programButterflyTextureCompute.bindComputeUnbind(N, M);
-
- 
-  
-    // --------------------------------------------------------
-    /** CREATING FOURIER COMPONENT DX/DY/DZ TEXTURES */
-
-    // rebind the h0k and h0minusk to image unit 0 and 1, respectively.(a little unsure about this)
-    glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-    glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-
-    // bind image units used  in fourier component compute shader to dx dy dz write textures
-    texture_fourier_component_dx = Texture(false, N, M);
-    glBindImageTexture(2, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
-    texture_fourier_component_dy = Texture(false, N, M);
-    glBindImageTexture(3, texture_fourier_component_dy.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
-    texture_fourier_component_dz = Texture(false, N, M);
-    glBindImageTexture(4, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
-    programFourierComponentCompute.SetUniform1f("time", fourier_comp_time);
-    programFourierComponentCompute.SetUniform1i("N", fourier_comp_N);
-    programFourierComponentCompute.SetUniform1i("L", fourier_comp_L);
-
-    // run the programFOurierComponent compute shader to write to dx, dy, dz textures
-    programFourierComponentCompute.bindComputeUnbind(N, M);
-
- 
-
-    // --------------------------------------------------------
-    /**  BUTTERFLY FOURIER COMPUTATION */ 
-
-    glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-
-    texture_pingpong_0 = Texture(false, N, M);
-    glBindImageTexture(1, texture_pingpong_0.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
-    texture_pingpong_1 = Texture(false, N, M);
-    glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    
-    // bind ping pong textures to fragment shader
-    glBindTextureUnit(6, texture_pingpong_0.getID());
-    glBindTextureUnit(7, texture_pingpong_1.getID());
-
-    // --------------------------------------------------------
-    /** INVERSION COMPUTE SHADER */
-
-    texture_displacement_of_points_on_grid = Texture(false, N, M);
-    glBindImageTexture(0, texture_displacement_of_points_on_grid.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
-    glBindImageTexture(1, texture_pingpong_0.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-    glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-   
-    // not binding to fragment shader yet since no empty spots! 
-
-
-    // CONNECT TO FRAGMENT SHADER (MOVED HERE TO DEBUG) 
-
-    // bind the resulting textures to fragment shader
-    glBindTextureUnit(0, texture_tilde_h0k.getID());
-    glBindTextureUnit(1, texture_tilde_h0minusk.getID());
-
-    // bind resulting butterfly texture to fragment shader
-    glBindTextureUnit(2, texture_butterfly.getID());
-
-    // bind resulting dx, dy, dz fourier component textures  to fragment shader
-    glBindTextureUnit(3, texture_fourier_component_dx.getID());
-    glBindTextureUnit(4, texture_fourier_component_dy.getID());
-    glBindTextureUnit(5, texture_fourier_component_dz.getID());
+    programButterflyTextureCompute.compute(N, M);
 }
 
 void setUpLibraries()
@@ -338,14 +366,6 @@ void render()
     glClearColor(0.0f, 0.0f, 0.0f, 0);    // background = gray
     glClear(GL_COLOR_BUFFER_BIT);
 
-    butterfly_comp_stage++;
-    programButterflyCompute.SetUniform1i("stage", butterfly_comp_stage);
-    butterfly_comp_pingpong_index = (!butterfly_comp_pingpong_index);
-    programButterflyCompute.SetUniform1i("pingpong_index", butterfly_comp_pingpong_index);
-    butterfly_comp_direction = (!butterfly_comp_direction);
-    programButterflyCompute.SetUniform1i("direction", butterfly_comp_direction);
-    programButterflyCompute.bindComputeUnbind(N, M);
-
     // render quad
     programRender.bind();
     glBindVertexArray(VAO);
@@ -362,6 +382,7 @@ void cleanUp()
     glDeleteProgram(programButterflyTextureCompute.getID());
     glDeleteProgram(programFourierComponentCompute.getID());
     glDeleteProgram(programButterflyCompute.getID());
+    //glDeleteProgram(programInversionCompute.getID());
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);

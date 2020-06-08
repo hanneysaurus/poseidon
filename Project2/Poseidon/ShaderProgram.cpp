@@ -124,7 +124,7 @@ GLuint ShaderProgram::createShader(const char* filePath, ShaderType type) {
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logSize);
 		GLchar* message = new char[logSize];
 		glGetShaderInfoLog(shader, logSize, NULL, message);
-
+		std::cout << "compile error in Shader program with id " << this->program_id << "...";
 		std::cout << message << std::endl;
 		delete[] message;
 	}
@@ -135,7 +135,7 @@ GLuint ShaderProgram::createShader(const char* filePath, ShaderType type) {
 /* 1.binds the shader program to the current context,
 	2.calls dispatch compute with the given x y z dimensions (runs with attached shader program)
 	3.unbinds the shader program, (depth has default value 1 if not given)  */
-void ShaderProgram::bindComputeUnbind(int width, int height, int depth ) {
+void ShaderProgram::compute(int width, int height, int depth ) {
 	bind();
 	dispatchCompute(width, height, depth);
 	unbind();
@@ -158,4 +158,12 @@ void ShaderProgram::SetUniform1i(const std::string& name, int value)
 void ShaderProgram::SetUniform1f(const std::string& name, float value)
 {
 	glProgramUniform1f(this->program_id, GetUniformLocation(name), value);
+}
+
+/** pingpong val should be either 0 or 1, is_vertical should be 0 or 1 and controls whether it is horizontal or vertical fft
+stage is the stage of the fft being computed */
+void ShaderProgram::updateButterflyComputeUniforms(int pingpong_val, int is_vertical_fft,int stage) {
+	SetUniform1i("pingpong_index", pingpong_val);
+	SetUniform1i("direction", is_vertical_fft);
+	SetUniform1i("stage", stage);
 }
