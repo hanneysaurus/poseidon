@@ -15,7 +15,7 @@ out layout (location = 0) vec4 out_color;
 
 void main() {
     //out_color = vec4(0, 1, 0, 1);
-    out_color = texture(tilde_h0k, texcoord) + texture(h0minusk, texcoord);
+    //out_color = texture(tilde_h0k, texcoord) + texture(h0minusk, texcoord);
     //out_color = texture(butterfly_texture, texcoord);
     //out_color = texture(fourier_component_dy, texcoord);
     //out_color = texture(pingpong_1, texcoord);
