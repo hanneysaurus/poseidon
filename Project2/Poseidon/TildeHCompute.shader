@@ -51,17 +51,29 @@ void main() {
 	if (magnitude < 0.00001) {
 		magnitude = 0.00001;
 	}
-	float magnitude_squared = magnitude * magnitude;
+	float mgSq = magnitude * magnitude;
 
-	float h0k = clamp(sqrt((A / (magnitude_squared * magnitude_squared))
-		* pow(dot(normalize(k), normalize(windDirection)), 6.0)
-		* exp(-(1.0 / (magnitude_squared * L_ * L_)))
-		* exp(-magnitude_squared * pow(L / 2000.0, 2.0))) / sqrt(2.0), -4000, 4000);
 
-	float h0minusk = clamp(sqrt((A / (magnitude_squared * magnitude_squared))
-		* pow(dot(normalize(-k), normalize(windDirection)), 6.0)
-		* exp(-(1.0 / (magnitude_squared * L_ * L_)))
-		* exp(-magnitude_squared * pow(L / 2000.0, 2.0))) / sqrt(2.0), -4000, 4000);
+	// thesis version 
+	//float h0k = clamp(sqrt((A / (mgSq * mgSq))
+	//	* pow(dot(normalize(k), normalize(windDirection)), 2.0)
+	//	* exp(-(1.0 / (mgSq * L_ * L_)))
+	//	* exp(-mgSq * pow(L / 2000.0, 2.0))) / sqrt(2.0), -4000, 4000);
+
+	/*float h0minusk = clamp(sqrt((A / (mgSq * mgSq))
+		* pow(dot(normalize(-k), normalize(windDirection)), 2.0)
+		* exp(-(1.0 / (mgSq * L_ * L_)))
+		* exp(-mgSq * pow(L / 2000.0, 2.0))) / sqrt(2.0), -4000, 4000);*/
+
+	// using the version from java github fft ocean 
+
+	//sqrt(Ph(k))/sqrt(2)
+	float h0k = clamp(sqrt((A / (mgSq * mgSq)) * pow(dot(normalize(k), normalize(windDirection)), 2.0) 
+		        * exp(-(1.0 / (mgSq * L_ * L_))) * exp(-mgSq * pow(L/2000, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
+
+	////sqrt(Ph(-k))/sqrt(2)
+	float h0minusk = clamp(sqrt((A / (mgSq * mgSq)) * pow(dot(normalize(-k), normalize(windDirection)), 2.0) 
+		* exp(-(1.0 / (mgSq * L_ * L_))) * exp(-mgSq * pow(L/2000, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
 
 	vec4 gauss_randoms = gauss_random(texel);
 

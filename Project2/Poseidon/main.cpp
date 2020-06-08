@@ -56,6 +56,8 @@ unsigned int VAO, VBO;
 const unsigned int texture_width = 256;
 const unsigned int texture_height = 256;
 
+const int N = 256;
+
 Texture texture_random_noise_1;
 Texture texture_random_noise_2;
 Texture texture_random_noise_3;
@@ -84,8 +86,6 @@ int butterfly_comp_stage = 0;
 int butterfly_comp_pingpong_index = 0;
 int butterfly_comp_direction = 1;
 
-int pingpong;
-int N;
 
 float A = 4;
 glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
