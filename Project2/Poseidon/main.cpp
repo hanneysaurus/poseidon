@@ -85,7 +85,7 @@ Texture texture_pingpong_1;
 Texture texture_displacement_of_points_on_grid;
 
 // uniform variables
-float fourier_comp_time = float(glfwGetTime());
+float t = float(glfwGetTime());
 
 // fft ocean parameters
 float A = 4;
@@ -297,7 +297,7 @@ void create_fourier_components()
 
     glBindImageTexture(4, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-    programFourierComponentCompute.SetUniform1f("time", fourier_comp_time);
+    programFourierComponentCompute.SetUniform1f("time", t);
     programFourierComponentCompute.SetUniform1i("N", N);
     programFourierComponentCompute.SetUniform1i("L", L);
 
@@ -393,7 +393,7 @@ void render()
     glClearColor(0.0f, 0.0f, 0.0f, 0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    fourier_comp_time+=0.5;
+    t+=0.5;
     create_fourier_components();
     fft();
     inversion();

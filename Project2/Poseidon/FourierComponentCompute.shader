@@ -2,7 +2,7 @@
 #define PI 3.1415
 #define GRAVITY 9.81
 
-layout(local_size_x = 1, local_size_y = 16) in;
+layout(local_size_x = 1, local_size_y = 1) in;
 
 
 // read textures

@@ -1,7 +1,7 @@
 #version 450 core
 #define PI 3.1415
 
-layout(local_size_x = 16, local_size_y = 16) in;
+layout(local_size_x = 1, local_size_y = 1) in;
 
 layout(binding = 0, rgba32f) readonly uniform image2D butterfly_texture;
 layout(binding = 1, rgba32f) uniform image2D pingpong_0;
