@@ -12,11 +12,16 @@ uniform readonly layout(binding = 3, rgba8) image2D randtex2;
 uniform readonly layout(binding = 4, rgba8) image2D randtex3;
 uniform readonly layout(binding = 5, rgba8) image2D randtex4;
 
-float rand(vec2 co) {
-	return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
-}
+uniform int N; // 256
+uniform int L; // 1000
+uniform float A; // 20
+uniform vec2 windDirection; // vec2(1.0f, 1.0f)
+uniform float windSpeed; // 40
 
-vec4 gauss_random(ivec2 co) {
+vec4 gauss_random() {
+	//ivec2 co = ivec2(vec2(gl_GlobalInvocationID.xy) / float(N));
+	ivec2 co = ivec2(gl_GlobalInvocationID.xy);
+
 	float noise1 = clamp(imageLoad(randtex1, co).r, 0.001, 1.0);
 	float noise2 = clamp(imageLoad(randtex2, co).r, 0.001, 1.0);
 	float noise3 = clamp(imageLoad(randtex3, co).r, 0.001, 1.0);
@@ -33,13 +38,6 @@ vec4 gauss_random(ivec2 co) {
 }
 
 void main() {
-
-	//should be uniforms later
-	int N = 256;
-	int L = 1000;
-	float A = 4;
-	vec2 windDirection = vec2(1.0f, 1.0f);
-	float windSpeed = 40;
 
 	ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
 	vec2 x = vec2(gl_GlobalInvocationID.xy) - float(N) / 2.0;
@@ -68,14 +66,18 @@ void main() {
 	// using the version from java github fft ocean 
 
 	//sqrt(Ph(k))/sqrt(2)
-	float h0k = clamp(sqrt((A / (mgSq * mgSq)) * pow(dot(normalize(k), normalize(windDirection)), 2.0) 
-		        * exp(-(1.0 / (mgSq * L_ * L_))) * exp(-mgSq * pow(L/2000, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
+	float h0k = clamp(sqrt((A / (mgSq * mgSq)) 
+		* pow(dot(normalize(k), normalize(windDirection)), 2.0) 
+		* exp(-(1.0 / (mgSq * L_ * L_))) 
+		* exp(-mgSq * pow(L/2000, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
 
 	//sqrt(Ph(-k))/sqrt(2)
-	float h0minusk = clamp(sqrt((A / (mgSq * mgSq)) * pow(dot(normalize(-k), normalize(windDirection)), 2.0) 
-		* exp(-(1.0 / (mgSq * L_ * L_))) * exp(-mgSq * pow(L/2000, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
+	float h0minusk = clamp(sqrt((A / (mgSq * mgSq)) 
+		* pow(dot(normalize(-k), normalize(windDirection)), 2.0) 
+		* exp(-(1.0 / (mgSq * L_ * L_))) 
+		* exp(-mgSq * pow(L/2000, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
 
-	vec4 gauss_randoms = gauss_random(texel);
+	vec4 gauss_randoms = gauss_random();
 
 	imageStore(tilde_h0k, texel, vec4(gauss_randoms.xy * h0k, 0, 1));
 	imageStore(tilde_h0minusk, texel, vec4(gauss_randoms.zw * h0minusk, 0, 1));

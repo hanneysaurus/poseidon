@@ -34,6 +34,7 @@ public:
 	unsigned int GetUniformLocation(const std::string& name);
 	void SetUniform1i(const std::string& name, int value);
 	void SetUniform1f(const std::string& name, float value);
+	void SetUniform1fv(const std::string& name, glm::vec2 vector);
 
 
 	// all compute shaders

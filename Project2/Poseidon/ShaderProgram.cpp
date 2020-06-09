@@ -160,6 +160,11 @@ void ShaderProgram::SetUniform1f(const std::string& name, float value)
 	glProgramUniform1f(this->program_id, GetUniformLocation(name), value);
 }
 
+void ShaderProgram::SetUniform1fv(const std::string& name, glm::vec2 vector)
+{
+	glProgramUniform2f(this->getID(), GetUniformLocation(name), vector.x, vector.y);
+}
+
 /** pingpong val should be either 0 or 1, is_vertical should be 0 or 1 and controls whether it is horizontal or vertical fft
 stage is the stage of the fft being computed */
 void ShaderProgram::updateButterflyComputeUniforms(int pingpong_val, int is_vertical_fft,int stage) {
