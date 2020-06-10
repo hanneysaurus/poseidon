@@ -88,10 +88,10 @@ Texture texture_displacement_of_points_on_grid;
 float t = float(glfwGetTime());
 
 // fft ocean parameters
-float A = 4;
-int L = 1000;
+float A = 10;
+int L = 800;
 glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
-float windSpeed = 40;
+float windSpeed = 10;
 
 // width and height of grid
 const int N = 256;

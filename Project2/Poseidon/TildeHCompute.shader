@@ -65,15 +65,15 @@ void main() {
 
 	// using the version from java github fft ocean 
 
-	//sqrt(Ph(k))/sqrt(2)
+	//sqrt(Ph(k))/sqrt(2)														// adding these terms makes the smaller waves disappear a bit 
 	float h0k = clamp(sqrt((A / (mgSq * mgSq)) 
-		* pow(dot(normalize(k), normalize(windDirection)), 2.0) 
-		* exp(-(1.0 / (mgSq * L_ * L_))) 
+		* pow(dot(normalize(k), normalize(windDirection)), 2) /** pow(dot(normalize(k), normalize(windDirection)), 2) * pow(dot(normalize(k), normalize(windDirection)), 2)
+		* exp(-(1.0 / (mgSq * L_ * L_))) */
 		* exp(-mgSq * pow(L/2000, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
 
 	//sqrt(Ph(-k))/sqrt(2)
-	float h0minusk = clamp(sqrt((A / (mgSq * mgSq)) 
-		* pow(dot(normalize(-k), normalize(windDirection)), 2.0) 
+	float h0minusk = clamp(sqrt((A / (mgSq * mgSq))								// adding these terms makes the smaller waves disappear a bit
+		* pow(dot(normalize(-k), normalize(windDirection)), 2) /** pow(dot(normalize(-k), normalize(windDirection)), 2) * pow(dot(normalize(-k), normalize(windDirection)), 2)*/
 		* exp(-(1.0 / (mgSq * L_ * L_))) 
 		* exp(-mgSq * pow(L/2000, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
 
