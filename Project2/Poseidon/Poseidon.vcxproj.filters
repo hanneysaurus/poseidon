@@ -27,9 +27,6 @@
     <ClCompile Include="Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UtilityFunctions.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ShaderProgram.h">
@@ -41,33 +38,30 @@
     <ClInclude Include="Debug.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UtilityFunctions.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="OpenGLimports.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="FragmentShader.shader">
-      <Filter>res\shaders</Filter>
-    </None>
-    <None Include="VertexShader.shader">
+    <None Include="ButterflyCompute.shader">
       <Filter>res\shaders</Filter>
     </None>
     <None Include="ButterflyTextureCompute.shader">
       <Filter>res\shaders</Filter>
     </None>
-    <None Include="TildeHCompute.shader">
-      <Filter>res\shaders</Filter>
-    </None>
     <None Include="FourierComponentCompute.shader">
       <Filter>res\shaders</Filter>
     </None>
-    <None Include="ButterflyCompute.shader">
+    <None Include="FragmentShader.shader">
       <Filter>res\shaders</Filter>
     </None>
     <None Include="InversionCompute.shader">
+      <Filter>res\shaders</Filter>
+    </None>
+    <None Include="TildeHCompute.shader">
+      <Filter>res\shaders</Filter>
+    </None>
+    <None Include="VertexShader.shader">
       <Filter>res\shaders</Filter>
     </None>
   </ItemGroup>

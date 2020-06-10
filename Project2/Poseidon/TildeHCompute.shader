@@ -12,14 +12,13 @@ uniform readonly layout(binding = 3, rgba8) image2D randtex2;
 uniform readonly layout(binding = 4, rgba8) image2D randtex3;
 uniform readonly layout(binding = 5, rgba8) image2D randtex4;
 
-uniform int N; // 256
-uniform int L; // 1000
-uniform float A; // 20
-uniform vec2 windDirection; // vec2(1.0f, 1.0f)
-uniform float windSpeed; // 40
+uniform int N;
+uniform int L;
+uniform float A;
+uniform vec2 windDirection;
+uniform float windSpeed;
 
 vec4 gauss_random() {
-	//ivec2 co = ivec2(vec2(gl_GlobalInvocationID.xy) / float(N));
 	ivec2 co = ivec2(gl_GlobalInvocationID.xy);
 
 	float noise1 = clamp(imageLoad(randtex1, co).r, 0.001, 1.0);

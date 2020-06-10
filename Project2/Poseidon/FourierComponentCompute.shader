@@ -7,7 +7,7 @@ layout(local_size_x = 1, local_size_y = 1) in;
 
 // read textures
 layout(binding = 0, rgba32f) readonly uniform image2D tilde_h0k;
-layout(binding = 1, rgba32f) readonly uniform image2D h0minusk;
+layout(binding = 1, rgba32f) readonly uniform image2D tilde_h0minusk;
 
 // write textures
 layout(binding = 2, rgba32f)  writeonly uniform image2D fourier_component_dx;
@@ -18,27 +18,27 @@ uniform int N;
 uniform int L;
 uniform float time;
 
-struct complex {
+struct ComplexNumber {
 	float real;
-	float im;
+	float imaginary;
 };
 
-complex multiply(complex c0, complex c1) {
-	complex product;
-	product.real = c0.real * c1.real - c0.im * c1.im;
-	product.im = c0.real * c1.im + c0.im * c1.real;
+ComplexNumber multiply(ComplexNumber c0, ComplexNumber c1) {
+	ComplexNumber product;
+	product.real = c0.real * c1.real - c0.imaginary * c1.imaginary;
+	product.imaginary = c0.real * c1.imaginary + c0.imaginary * c1.real;
 	return product;
 };
 
-complex add(complex c0, complex c1) {
-	complex sum;
+ComplexNumber add(ComplexNumber c0, ComplexNumber c1) {
+	ComplexNumber sum;
 	sum.real = c0.real + c1.real;
-	sum.im = c0.im + c1.im;
+	sum.imaginary = c0.imaginary + c1.imaginary;
 	return sum;
 }
 
-complex conjugate(complex c) {
-	complex conjugate_of_c = complex(c.real, -c.im);
+ComplexNumber conjugate(ComplexNumber c) {
+	ComplexNumber conjugate_of_c = ComplexNumber(c.real, -c.imaginary);
 	return conjugate_of_c;
 }
 
@@ -46,50 +46,48 @@ complex conjugate(complex c) {
 void main()
 {
 
-	ivec2 curr_pos = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
 
 	vec2 x = ivec2(gl_GlobalInvocationID.xy) - float(N) / 2.0;
 	vec2 k = vec2(2.0 * PI * x.x / L, 2.0 * PI * x.y / L);
 
 	float magnitude_of_k = length(k);
-	if (magnitude_of_k < 0.00001) magnitude_of_k = 0.00001;
+	if (magnitude_of_k < 0.00001) 
+	{ 
+		magnitude_of_k = 0.00001;
+	};
 
 	float w = sqrt(GRAVITY * magnitude_of_k);
 
-	vec2 tilde_h0k_values = imageLoad(tilde_h0k, curr_pos).rg;
-	complex fourier_component = complex(tilde_h0k_values.x, tilde_h0k_values.y);
+	vec2 tilde_h0k_values = imageLoad(tilde_h0k, texel).rg;
+	ComplexNumber fourier_component = ComplexNumber(tilde_h0k_values.x, tilde_h0k_values.y);
 
-	vec2 tilde_h0minusk_values = imageLoad(h0minusk, curr_pos).rg;
-	complex fourier_component_conj = conjugate(complex(tilde_h0minusk_values.x, tilde_h0minusk_values.y));
+	vec2 tilde_h0minusk_values = imageLoad(tilde_h0minusk, texel).rg;
+	ComplexNumber fourier_component_conj = conjugate(ComplexNumber(tilde_h0minusk_values.x, tilde_h0minusk_values.y));
 
 	float cos_w_t = cos(w * time);
 	float sin_w_t = sin(w * time);
 
 	// using euler e^(iwt) = cos(wt) + i*sin(wt)
-	complex exp_iwt = complex(cos_w_t, sin_w_t);
-	complex exp_iwt_inv = complex(cos_w_t, -sin_w_t);
+	ComplexNumber exp_iwt = ComplexNumber(cos_w_t, sin_w_t);
+	ComplexNumber exp_iwt_inv = ComplexNumber(cos_w_t, -sin_w_t);
 
 	// find projections of spectrum onto each axis 
 
 	// dy
-	complex hkt_dy = add(multiply(fourier_component, exp_iwt), multiply(fourier_component_conj, exp_iwt_inv));
+	ComplexNumber hkt_dy = add(multiply(fourier_component, exp_iwt), multiply(fourier_component_conj, exp_iwt_inv));
 
 	// dx 
-	complex dx = complex(0.0, -k.x / magnitude_of_k);
-	complex hkt_dx = multiply(dx, hkt_dy);
+	ComplexNumber dx = ComplexNumber(0.0, -k.x / magnitude_of_k);
+	ComplexNumber hkt_dx = multiply(dx, hkt_dy);
 
 	// dz 
-	complex dy = complex(0.0, -k.y / magnitude_of_k);
-	complex hkt_dz = multiply(dy, hkt_dy);
+	ComplexNumber dy = ComplexNumber(0.0, -k.y / magnitude_of_k);
+	ComplexNumber hkt_dz = multiply(dy, hkt_dy);
 
 	// store components in textures
-	imageStore(fourier_component_dy, curr_pos, vec4(hkt_dy.real, hkt_dy.im,0,1));
-	imageStore(fourier_component_dx, curr_pos, vec4(hkt_dx.real, hkt_dx.im,0,1));
-	imageStore(fourier_component_dz, curr_pos, vec4(hkt_dz.real, hkt_dz.im,0,1));
-
-	// debugging 
-	/*vec4 colour=imageLoad(tilde_h0k,curr_pos);
-	imageStore(fourier_component_dy, curr_pos, colour);*/
-	//if (N==256) imageStore(fourier_component_dy, curr_pos, vec4(0, 1, 0, 1));
+	imageStore(fourier_component_dy, texel, vec4(hkt_dy.real, hkt_dy.imaginary, 0, 1));
+	imageStore(fourier_component_dx, texel, vec4(hkt_dx.real, hkt_dx.imaginary, 0, 1));
+	imageStore(fourier_component_dz, texel, vec4(hkt_dz.real, hkt_dz.imaginary, 0, 1));
 
 }

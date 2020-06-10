@@ -3,7 +3,6 @@
 #define INT_SIZE 32
 
 #include <iostream>
-#include <bitset> 
 
 #include "OpenGLImports.h"
 
@@ -11,11 +10,11 @@
 #include "Texture.h"
 
 #include "Debug.h"
-#include "UtilityFunctions.h"
-
 
 // --------------------------------------------------------
 // FUNCTION DECLARATIONS
+
+int main(void);
 
 // callback functions
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -27,14 +26,13 @@ void setCallbackFunctions();
 void init_VAO_and_shaders();
 void init_textures();
 
-int main(void);
-
 // fft functions
 void create_h0k_h0minusk_textures();
 void create_butterfly_texture();
 void create_fourier_components();
 void fft();
 void inversion();
+void choppyWaves();
 
 // loop functions
 void render();
@@ -46,13 +44,26 @@ unsigned int reverseBits(unsigned int n);
 void cleanUp();
 
 // --------------------------------------------------------
-// GLOBAL VARIABLES
+// USER DEFINED VARIABLES
 
 // window settings
 GLFWwindow* window = nullptr;
 const int window_width = 800;
 const int window_height = 800;
 const char* window_title = "Poseidon";
+
+// fft ocean parameters
+float A = 10;
+int L = 800;
+glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
+float windSpeed = 10;
+
+// width and height of grid
+const int N = 256;
+const int M = 256;
+
+// --------------------------------------------------------
+// GLOBAL VARIABLES
 
 // shaders
 ShaderProgram programTildeHCompute;
@@ -84,25 +95,17 @@ Texture texture_pingpong_1;
 
 Texture texture_displacement_of_points_on_grid;
 
-// uniform variables
-float t = float(glfwGetTime());
+// time
+float lastRefreshTime = 0.0f;
+float currTime = glfwGetTime();
+float t = 0.0f;
 
-// fft ocean parameters
-float A = 10;
-int L = 800;
-glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
-float windSpeed = 10;
-
-// width and height of grid
-const int N = 256;
-const int M = 256;
-
-//misc
+// misc
 int* bitReversedIndices;
-const int log_2_N = (int)(log(N)/log(2));
-int pingpong;
-float deltaTime = 0.0f;
-float time_sum = 0.0f;
+int pingpong_index = 0;
+const int log_2_N = (int)(log(N) / log(2));
+bool choppy = false;
+char pressed = ' ';
 
 // --------------------------------------------------------
 // STRUCTS
@@ -145,14 +148,25 @@ int main(void)
     glBindTextureUnit(6, texture_displacement_of_points_on_grid.getID());
     glBindTextureUnit(7, texture_pingpong_1.getID());
 
-    //connect displacement texture to the fragment shader
-    //glBindTextureUnit(8, texture_displacement_of_points_on_grid.getID());
 
     //render loop
     while (!glfwWindowShouldClose(window))
     {
         glEnable(GL_BLEND);
-        //glBlendFunc(GL_RGB, GL_SRC_ALPHA);
+
+        currTime = glfwGetTime();
+        if (currTime - lastRefreshTime > 1 / 30)
+        {
+            t += 0.25;
+            create_fourier_components();
+            fft();
+            inversion();
+            if (choppy)
+            {
+                choppyWaves();
+            }
+            lastRefreshTime = currTime;
+        }
 
         render();
 
@@ -166,15 +180,16 @@ int main(void)
     return 0;
 }
 
+// initializes vertex buffers and all shaderprograms
 void init_VAO_and_shaders()
 {
     // create shaders
     programRender = ShaderProgram("VertexShader.shader", "FragmentShader.shader");
-    programTildeHCompute = ShaderProgram("tildehcompute.shader");
-    programButterflyTextureCompute = ShaderProgram("butterflyTextureCompute.shader");
-    programFourierComponentCompute = ShaderProgram("fourierComponentCompute.shader");
-    programButterflyCompute = ShaderProgram("butterflyCompute.shader");
-    programInversionCompute = ShaderProgram("inversionCompute.shader");
+    programTildeHCompute = ShaderProgram("TildeHCompute.shader");
+    programButterflyTextureCompute = ShaderProgram("ButterflyTextureCompute.shader");
+    programFourierComponentCompute = ShaderProgram("FourierComponentCompute.shader");
+    programButterflyCompute = ShaderProgram("ButterflyCompute.shader");
+    programInversionCompute = ShaderProgram("InversionCompute.shader");
 
     // create vertex objects
     glGenVertexArrays(1, &VAO);
@@ -205,6 +220,7 @@ void init_VAO_and_shaders()
 
 }
 
+// initializes all used textures
 void init_textures()
 {
     texture_tilde_h0k = Texture(false, N, M);
@@ -227,22 +243,19 @@ void init_textures()
 
 }
 
+// create tilde h0k and tilde h0minusk textures
 void create_h0k_h0minusk_textures() {
 
-    // bind tilde_h0k, h0minusk & noise textures 
-    // to image units which are then used by uniform image2Ds in tilde_hk compute shader */
+    // bind image units of tilde_h0k and h0minusk
     glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
     glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
+    // bind image units of noise textures 
     glBindImageTexture(2, texture_random_noise_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-
     glBindImageTexture(3, texture_random_noise_2.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-
     glBindImageTexture(4, texture_random_noise_3.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
-
     glBindImageTexture(5, texture_random_noise_4.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA8);
 
+    // set uniform variables of the shader
     programTildeHCompute.SetUniform1i("N", N);
     programTildeHCompute.SetUniform1i("L", L);
     programTildeHCompute.SetUniform1f("A", A);
@@ -254,8 +267,10 @@ void create_h0k_h0minusk_textures() {
 
 }
 
+// create butterfly texture and reversed bit indices
 void create_butterfly_texture() {
 
+    //generate reversed bit indices
     bitReversedIndices = new int[M];
     int bits = (log(M) / log(2));
     for (int i = 0; i < M; i++)
@@ -265,14 +280,16 @@ void create_butterfly_texture() {
         bitReversedIndices[i] = x;
     }
 
-    // create the buffer that passes bitReversedIndices & bind to binding index
+    // create the shader storage buffer that passes bitReversedIndices
     unsigned int reverseIndicesSSBO;
     glGenBuffers(1, &reverseIndicesSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndicesSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(int) * M, bitReversedIndices, GL_STATIC_DRAW);
     delete[] bitReversedIndices;
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, reverseIndicesSSBO); // buffer assigned to binding index 0
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind the buffer after use
+    // buffer assigned to binding index 0
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, reverseIndicesSSBO);
+    // unbind buffer
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     // run the butterfly texture compute shader
     glBindImageTexture(1, texture_butterfly.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
@@ -281,78 +298,141 @@ void create_butterfly_texture() {
     programButterflyTextureCompute.compute(N, M);
 }
 
+// create fourier components dx, dy and dz textures
 void create_fourier_components()
 {
-    // --------------------------------------------------------
-    /** CREATING FOURIER COMPONENT DX/DY/DZ TEXTURES */
-
-    // rebind the h0k and h0minusk to image unit 0 and 1, respectively.(a little unsure about this)
+    // bind the h0k and h0minusk to image unit 0 and 1
     glBindImageTexture(0, texture_tilde_h0k.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
     glBindImageTexture(1, texture_tilde_h0minusk.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
 
-    // bind image units used  in fourier component compute shader to dx dy dz write textures
+    // bind image units used in fourier component compute shader to dx dy dz write textures
     glBindImageTexture(2, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
     glBindImageTexture(3, texture_fourier_component_dy.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
     glBindImageTexture(4, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
+    // set uniform variables of the shader
     programFourierComponentCompute.SetUniform1f("time", t);
     programFourierComponentCompute.SetUniform1i("N", N);
     programFourierComponentCompute.SetUniform1i("L", L);
 
-    // run the programFourierComponent compute shader to write to dx, dy, dz textures
+    // run the shader to write to dx, dy, dz textures
     programFourierComponentCompute.compute(N, M);
 }
 
+// butterfly fourier compututation
 void fft()
 {
-    // --------------------------------------------------------
-    /**  BUTTERFLY FOURIER COMPUTATION */
-
+    // bind image units used in butterfly texture compute shader
     glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-
     glBindImageTexture(1, texture_fourier_component_dy.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
     glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-    pingpong = 0;
-
-    // 1 dim FFT in horizontal direction 
+    // one dimensional FFT in horizontal direction 
     for (int stage = 0; stage < log_2_N; stage++)
     {
-        programButterflyCompute.updateButterflyComputeUniforms(pingpong, 0, stage);
+        programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 0, stage);
         programButterflyCompute.compute(N, M);
         glFinish();
-        pingpong = !pingpong;
+        pingpong_index = !pingpong_index;
     }
 
-    // 1 dim FFT in vertical direction  
+    // one dimensional FFT in vertical direction   
     for (int stage = 0; stage < log_2_N; stage++)
     {
-        programButterflyCompute.updateButterflyComputeUniforms(pingpong, 1, stage);
+        programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 1, stage);
         programButterflyCompute.compute(N, M);
         glFinish();
-        pingpong = !pingpong;
+        pingpong_index = !pingpong_index;
     }
 }
 
+// inversion and permutation compute shader
 void inversion()
 {
-
-    // --------------------------------------------------------
-    ///** INVERSION COMPUTE SHADER */
-
+    // bind image units used in inversion compute shader, texture pinpong1 is an empty texture, the dy component serves as texture pingpong0
     glBindImageTexture(0, texture_displacement_of_points_on_grid.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
     glBindImageTexture(1, texture_fourier_component_dy.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
     glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
 
-    programInversionCompute.SetUniform1i("pingpong", pingpong);
+    // set uniform variables of the shader
+    programInversionCompute.SetUniform1i("pingpong", pingpong_index);
     programInversionCompute.SetUniform1i("N", N);
 
+    // run the shader to write to the pingpong textures
     programInversionCompute.compute(N, M);
 }
 
+void choppyWaves()
+{
+        // Dx-FFT
+        pingpong_index = 0;
+
+        // bind image units used in butterfly texture compute shader
+        glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+        glBindImageTexture(1, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+        glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+        // one dimensional FFT in horizontal direction 
+        for (int stage = 0; stage < log_2_N; stage++)
+        {
+            programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 0, stage);
+            programButterflyCompute.compute(N, M);
+            glFinish();
+            pingpong_index = !pingpong_index;
+        }
+
+        // one dimensional FFT in vertical direction   
+        for (int stage = 0; stage < log_2_N; stage++)
+        {
+            programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 1, stage);
+            programButterflyCompute.compute(N, M);
+            glFinish();
+            pingpong_index = !pingpong_index;
+        }
+
+        programInversionCompute.bind();
+        programInversionCompute.SetUniform1i("pingpong", pingpong_index);
+        programInversionCompute.SetUniform1i("N", N);
+        glBindImageTexture(0, texture_fourier_component_dx.getID(), 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
+        programInversionCompute.dispatchCompute(N / 16, N / 16, 1);
+        glFinish();
+
+
+        // Dz-FFT
+        pingpong_index = 0;
+
+        // bind image units used in butterfly texture compute shader
+        glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
+        glBindImageTexture(1, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+        glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+        // one dimensional FFT in horizontal direction 
+        for (int stage = 0; stage < log_2_N; stage++)
+        {
+            programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 0, stage);
+            programButterflyCompute.compute(N, M);
+            glFinish();
+            pingpong_index = !pingpong_index;
+        }
+
+        // one dimensional FFT in vertical direction   
+        for (int stage = 0; stage < log_2_N; stage++)
+        {
+            programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 1, stage);
+            programButterflyCompute.compute(N, M);
+            glFinish();
+            pingpong_index = !pingpong_index;
+        }
+
+        programInversionCompute.bind();
+        programInversionCompute.SetUniform1i("pingpong", pingpong_index);
+        programInversionCompute.SetUniform1i("N", N);
+        glBindImageTexture(0, texture_fourier_component_dz.getID(), 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
+        programInversionCompute.dispatchCompute(N / 16, N / 16, 1);
+        glFinish();
+}
+
+// set up OpenGL, GLFW, GLEW
 void setUpLibraries()
 {
     // initialize GLFW
@@ -368,7 +448,7 @@ void setUpLibraries()
         glfwTerminate();
     }
 
-    // set OpenGL version
+    // set OpenGL version 4.5
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -383,21 +463,17 @@ void setUpLibraries()
     }
 }
 
+// setting calback functions
 void setCallbackFunctions(void) {
     glfwSetKeyCallback(window, key_callback);
     glfwSetScrollCallback(window, scroll_callback);
 }
 
+// runs renderProgram clears buffer
 void render()
 {
     glClearColor(0.0f, 0.0f, 0.0f, 0);
     glClear(GL_COLOR_BUFFER_BIT);
-
-    t+=0.5;
-    create_fourier_components();
-    fft();
-    inversion();
-
 
     // render quad
     programRender.bind();
@@ -407,6 +483,7 @@ void render()
     programRender.unbind();
 }
 
+// calls all destructors
 void cleanUp()
 {
     // delete all objects
@@ -435,18 +512,68 @@ void cleanUp()
     texture_displacement_of_points_on_grid.deleteTexture();
 }
 
+// is called when keys are pressed
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (action != GLFW_RELEASE) return;
+    if (action != GLFW_RELEASE) 
+    { 
+        return; 
+    }
+
     switch (key) {
     case GLFW_KEY_ESCAPE:
         glfwSetWindowShouldClose(window, true);
         break;
+    case GLFW_KEY_C:
+        choppy = !choppy;
+        break;
+    case GLFW_KEY_A:                // amplitude
+        pressed = 'A';
+        break;
+    case GLFW_KEY_L:                // L
+        pressed = 'L';
+        break;
+    case GLFW_KEY_S:                // windspeed
+        pressed = 'S';
+        break;
+
+
+    case GLFW_KEY_RIGHT_BRACKET:    // german keyboard: +
+        switch (pressed)
+        {
+        case 'A':
+            A++;
+            break;
+        case 'L':
+            L+=10;
+            break;
+        case 'S':
+            windSpeed++;
+            break;
+        }
+        break;
+
+    case GLFW_KEY_SLASH:            // german keyboard: -
+        switch (pressed)
+        {
+        case 'A':
+            A--;
+            break;
+        case 'L':
+            L-=10;
+            break;
+        case 'S':
+            windSpeed--;
+            break;
+        }
+        break;
     }
+
 }
 
+// is call when one scrolls
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){}
 
-/** reverses the bits of a given unsigned int */
+// reverses the bits of a given unsigned int 
 unsigned int reverseBits(unsigned int num)
 {
     unsigned int  NO_OF_BITS = sizeof(num) * 8;
