@@ -50,7 +50,7 @@ void main()
 	{
 		if (butterflywing == 1)
 		{
-			imageStore(butterfly_texture, x, vec4(twiddle.real, twiddle.imaginary, x.y, x.y + 1));
+			imageStore(butterfly_texture, x, vec4(twiddle.real, twiddle.imaginary, x.y, x.y + butterflyspan));
 		}
 		else
 		{
