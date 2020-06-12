@@ -273,8 +273,10 @@ void create_butterfly_texture() {
     // unbind buffer
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-    // run the butterfly texture compute shader
+    // bind output texture we are writing to 
     glBindImageTexture(1, texture_butterfly.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    programButterflyTextureCompute.SetUniform1i("N",N);
 
     // run the butterfly compute shader to write to butterfly texture
     programButterflyTextureCompute.compute(N, M);
