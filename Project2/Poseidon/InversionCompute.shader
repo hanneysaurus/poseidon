@@ -13,25 +13,23 @@ uniform int N;
 void main(void)
 {
 	ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
-	
-	float perms[] = {1.0, -1.0};
-	int index = int(mod((int(texel.x + texel.y)), 2));
-	float permutations = perms[index];
+	bool isEven = int(mod((int(texel.x + texel.y)), 2)) == 0;
+	float multiplier = isEven ? 1.0 : -1.0;
 	
 	if(pingpong == 0)
 	{
 		float h = imageLoad(pingpong_0, texel).r;
-		imageStore(displacement, texel, vec4(permutations * (h / float(N * N)), 
-											 permutations * (h / float(N * N)), 
-											 permutations * (h / float(N * N)), 
+		imageStore(displacement, texel, vec4(multiplier * (h / float(N * N)), 
+											 multiplier * (h / float(N * N)), 
+											 multiplier * (h / float(N * N)), 
 											 1));
 	}
 	else if(pingpong == 1)
 	{
 		float h = imageLoad(pingpong_1, texel).r;
-		imageStore(displacement, texel, vec4(permutations * (h / float(N * N)), 
-											 permutations * (h / float(N * N)), 
-											 permutations * (h / float(N * N)), 
+		imageStore(displacement, texel, vec4(multiplier * (h / float(N * N)), 
+											 multiplier * (h / float(N * N)), 
+											 multiplier * (h / float(N * N)), 
 											 1));
 	}
 }
