@@ -56,7 +56,7 @@ const char* window_title = "Poseidon";
 float A = 10;
 int L = 800;
 glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
-float windSpeed = 10;
+float windSpeed = 100;
 
 // width and height of grid
 const int N = 256;
