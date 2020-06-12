@@ -230,7 +230,7 @@ void init_textures()
     texture_random_noise_3 = Texture(true, N, M);
     texture_random_noise_4 = Texture(true, N, M);
 
-    texture_butterfly = Texture(false, log(N) / log(2), M);
+    texture_butterfly = Texture(false, log_2_N, M);
 
     texture_fourier_component_dx = Texture(false, N, M);
     texture_fourier_component_dy = Texture(false, N, M);
