@@ -25,6 +25,7 @@ void setUpLibraries();
 void setCallbackFunctions();
 void init_VAO_and_shaders();
 void init_textures();
+void connectTexturesToFragmentShader();
 
 // fft functions
 void create_h0k_h0minusk_textures();
@@ -126,27 +127,8 @@ int main(void)
 
     create_h0k_h0minusk_textures();
     create_butterfly_texture();
-    create_fourier_components();
-    fft();
-    inversion();
-
-
-    // CONNECT TO FRAGMENT SHADER
-    // bind the resulting textures to fragment shader
-    glBindTextureUnit(0, texture_tilde_h0k.getID());
-    glBindTextureUnit(1, texture_tilde_h0minusk.getID());
-
-    // bind resulting butterfly texture to fragment shader
-    glBindTextureUnit(2, texture_butterfly.getID());
-
-    // bind resulting dx, dy, dz fourier component textures  to fragment shader
-    glBindTextureUnit(3, texture_fourier_component_dx.getID());
-    glBindTextureUnit(4, texture_fourier_component_dy.getID());
-    glBindTextureUnit(5, texture_fourier_component_dz.getID());
-
-    // bind ping pong textures to fragment shader
-    glBindTextureUnit(6, texture_displacement_of_points_on_grid.getID());
-    glBindTextureUnit(7, texture_pingpong_1.getID());
+  
+    connectTexturesToFragmentShader();
 
 
     //render loop
@@ -430,6 +412,28 @@ void choppyWaves()
         glBindImageTexture(0, texture_fourier_component_dz.getID(), 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
         programInversionCompute.dispatchCompute(N / 16, N / 16, 1);
         glFinish();
+}
+
+
+void connectTexturesToFragmentShader() {
+
+    // CONNECT TO FRAGMENT SHADER
+    // bind the resulting textures to fragment shader
+    glBindTextureUnit(0, texture_tilde_h0k.getID());
+    glBindTextureUnit(1, texture_tilde_h0minusk.getID());
+
+    // bind resulting butterfly texture to fragment shader
+    glBindTextureUnit(2, texture_butterfly.getID());
+
+    // bind resulting dx, dy, dz fourier component textures  to fragment shader
+    glBindTextureUnit(3, texture_fourier_component_dx.getID());
+    glBindTextureUnit(4, texture_fourier_component_dy.getID());
+    glBindTextureUnit(5, texture_fourier_component_dz.getID());
+
+    // bind ping pong textures to fragment shader
+    glBindTextureUnit(6, texture_displacement_of_points_on_grid.getID());
+    glBindTextureUnit(7, texture_pingpong_1.getID());
+
 }
 
 // set up OpenGL, GLFW, GLEW
