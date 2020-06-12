@@ -56,7 +56,7 @@ const char* window_title = "Poseidon";
 float A = 10;
 int L = 800;
 glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
-float windSpeed = 100;
+float windSpeed = 1000;
 
 // width and height of grid
 const int N = 256;
@@ -369,8 +369,8 @@ void choppyWaves()
 
         // bind image units used in butterfly texture compute shader
         glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-        glBindImageTexture(1, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-        glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+        glBindImageTexture(1, texture_fourier_component_dx.getID(), 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
+        glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
 
         // one dimensional FFT in horizontal direction 
         for (int stage = 0; stage < log_2_N; stage++)
