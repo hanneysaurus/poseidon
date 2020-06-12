@@ -54,15 +54,13 @@ const int window_height = 800;
 const char* window_title = "Poseidon";
 
 // fft ocean parameters
-float A = 10;
-int L = 800;
-glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
+float A = 12;
+int L = 1000;
+glm::vec2 windDirection = glm::vec2(-1.0f, 1.0f);
 float windSpeed = 1000;
 
-// width and height of grid
-const int N = 256;
-const int M = 256;
-
+// width and height of grid = N
+const int N =256;
 // --------------------------------------------------------
 // GLOBAL VARIABLES
 
@@ -205,23 +203,23 @@ void init_VAO_and_shaders()
 // initializes all used textures
 void init_textures()
 {
-    texture_tilde_h0k = Texture(false, N, M);
-    texture_tilde_h0minusk = Texture(false, N, M);
-    texture_random_noise_1 = Texture(true, N, M);
-    texture_random_noise_2 = Texture(true, N, M);
-    texture_random_noise_3 = Texture(true, N, M);
-    texture_random_noise_4 = Texture(true, N, M);
+    texture_tilde_h0k = Texture(false, N, N);
+    texture_tilde_h0minusk = Texture(false, N, N);
+    texture_random_noise_1 = Texture(true, N, N);
+    texture_random_noise_2 = Texture(true, N, N);
+    texture_random_noise_3 = Texture(true, N, N);
+    texture_random_noise_4 = Texture(true, N, N);
 
-    texture_butterfly = Texture(false, log_2_N, M);
+    texture_butterfly = Texture(false, log_2_N, N);
 
-    texture_fourier_component_dx = Texture(false, N, M);
-    texture_fourier_component_dy = Texture(false, N, M);
-    texture_fourier_component_dz = Texture(false, N, M);
+    texture_fourier_component_dx = Texture(false, N, N);
+    texture_fourier_component_dy = Texture(false, N, N);
+    texture_fourier_component_dz = Texture(false, N, N);
 
-    texture_pingpong_0 = Texture(false, N, M);
-    texture_pingpong_1 = Texture(false, N, M);
+    texture_pingpong_0 = Texture(false, N, N);
+    texture_pingpong_1 = Texture(false, N, N);
 
-    texture_displacement_of_points_on_grid = Texture(false, N, M);
+    texture_displacement_of_points_on_grid = Texture(false, N, N);
 
 }
 
@@ -245,7 +243,7 @@ void create_h0k_h0minusk_textures() {
     programTildeHCompute.SetUniform1fv("windDirection", windDirection);
 
     // run the tildeHCompute shader to write to textures
-    programTildeHCompute.compute(N, M);
+    programTildeHCompute.compute(N, N);
 
 }
 
@@ -253,9 +251,9 @@ void create_h0k_h0minusk_textures() {
 void create_butterfly_texture() {
 
     //generate reversed bit indices
-    bitReversedIndices = new int[M];
-    int bits = (log(M) / log(2));
-    for (int i = 0; i < M; i++)
+    bitReversedIndices = new int[N];
+    int bits = (log(N) / log(2));
+    for (int i = 0; i < N; i++)
     {
         unsigned int x = reverseBits(i);
         x = (x << bits) | (x >> (INT_SIZE - bits));
@@ -266,7 +264,7 @@ void create_butterfly_texture() {
     unsigned int reverseIndicesSSBO;
     glGenBuffers(1, &reverseIndicesSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, reverseIndicesSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(int) * M, bitReversedIndices, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(int) * N, bitReversedIndices, GL_STATIC_DRAW);
     delete[] bitReversedIndices;
     // buffer assigned to binding index 0
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, reverseIndicesSSBO);
@@ -279,7 +277,7 @@ void create_butterfly_texture() {
     programButterflyTextureCompute.SetUniform1i("N",N);
 
     // run the butterfly compute shader to write to butterfly texture
-    programButterflyTextureCompute.compute(N, M);
+    programButterflyTextureCompute.compute(N, N);
 }
 
 // create fourier components dx, dy and dz textures
@@ -300,7 +298,7 @@ void create_fourier_components()
     programFourierComponentCompute.SetUniform1i("L", L);
 
     // run the shader to write to dx, dy, dz textures
-    programFourierComponentCompute.compute(N, M);
+    programFourierComponentCompute.compute(N, N);
 }
 
 // butterfly fourier compututation
@@ -315,7 +313,7 @@ void fft()
     for (int stage = 0; stage < log_2_N; stage++)
     {
         programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 0, stage);
-        programButterflyCompute.compute(N, M);
+        programButterflyCompute.compute(N, N);
         glFinish();
         pingpong_index = !pingpong_index;
     }
@@ -324,7 +322,7 @@ void fft()
     for (int stage = 0; stage < log_2_N; stage++)
     {
         programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 1, stage);
-        programButterflyCompute.compute(N, M);
+        programButterflyCompute.compute(N, N);
         glFinish();
         pingpong_index = !pingpong_index;
     }
@@ -343,7 +341,7 @@ void inversion()
     programInversionCompute.SetUniform1i("N", N);
 
     // run the shader to write to the pingpong textures
-    programInversionCompute.compute(N, M);
+    programInversionCompute.compute(N, N);
 }
 
 void choppyWaves()
@@ -360,7 +358,7 @@ void choppyWaves()
         for (int stage = 0; stage < log_2_N; stage++)
         {
             programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 0, stage);
-            programButterflyCompute.compute(N, M);
+            programButterflyCompute.compute(N, N);
             glFinish();
             pingpong_index = !pingpong_index;
         }
@@ -369,7 +367,7 @@ void choppyWaves()
         for (int stage = 0; stage < log_2_N; stage++)
         {
             programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 1, stage);
-            programButterflyCompute.compute(N, M);
+            programButterflyCompute.compute(N, N);
             glFinish();
             pingpong_index = !pingpong_index;
         }
@@ -394,7 +392,7 @@ void choppyWaves()
         for (int stage = 0; stage < log_2_N; stage++)
         {
             programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 0, stage);
-            programButterflyCompute.compute(N, M);
+            programButterflyCompute.compute(N, N);
             glFinish();
             pingpong_index = !pingpong_index;
         }
@@ -403,7 +401,7 @@ void choppyWaves()
         for (int stage = 0; stage < log_2_N; stage++)
         {
             programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 1, stage);
-            programButterflyCompute.compute(N, M);
+            programButterflyCompute.compute(N, N);
             glFinish();
             pingpong_index = !pingpong_index;
         }
