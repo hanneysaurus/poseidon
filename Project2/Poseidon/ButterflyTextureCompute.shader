@@ -18,10 +18,10 @@ struct ComplexNumber
 	float imaginary;
 };
 
+uniform int N;
+
 void main()
 {
-	int N = 256;
-	
 	ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
 	float k = mod(texel.y * (float(N) / pow(2, texel.x + 1)), N);
 	ComplexNumber twiddle = ComplexNumber(cos((2.0 * PI * k) / float(N)), sin((2.0 * PI * k) / float(N)));
