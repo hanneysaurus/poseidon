@@ -57,7 +57,7 @@ float A = 10;
 int L = 1000;
 glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
 float windSpeed = 40;
-bool choppy = false;
+bool choppy = true;
 
 // width and height of grid
 const int N = 256;
