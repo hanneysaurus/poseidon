@@ -12,6 +12,8 @@ uniform readonly layout(binding = 3, rgba8) image2D randtex2;
 uniform readonly layout(binding = 4, rgba8) image2D randtex3;
 uniform readonly layout(binding = 5, rgba8) image2D randtex4;
 
+uniform int choppy;
+
 uniform int N;
 uniform int L;
 uniform float A;
@@ -66,8 +68,8 @@ void main() {
 
 	//sqrt(Ph(k))/sqrt(2)														// adding these terms makes the smaller waves disappear a bit 
 	float h0k = clamp(sqrt((A / (mgSq * mgSq)) 
-		* pow(dot(normalize(k), normalize(windDirection)), 2) /** pow(dot(normalize(k), normalize(windDirection)), 2) * pow(dot(normalize(k), normalize(windDirection)), 2)
-		* exp(-(1.0 / (mgSq * L_ * L_))) */
+		* pow(dot(normalize(k), normalize(windDirection)), 2) /** pow(dot(normalize(k), normalize(windDirection)), 2) * pow(dot(normalize(k), normalize(windDirection)), 2)*/
+		* exp(-(1.0 / (mgSq * L_ * L_)))
 		* exp(-mgSq * pow(L/2000, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
 
 	//sqrt(Ph(-k))/sqrt(2)
@@ -75,6 +77,20 @@ void main() {
 		* pow(dot(normalize(-k), normalize(windDirection)), 2) /** pow(dot(normalize(-k), normalize(windDirection)), 2) * pow(dot(normalize(-k), normalize(windDirection)), 2)*/
 		* exp(-(1.0 / (mgSq * L_ * L_))) 
 		* exp(-mgSq * pow(L/2000, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
+
+	if (choppy == 1)
+	{
+		h0k = clamp(sqrt((A / (mgSq * mgSq))
+			* pow(dot(normalize(k), normalize(windDirection)), 2) * pow(dot(normalize(k), normalize(windDirection)), 2) * pow(dot(normalize(k), normalize(windDirection)), 2)
+			* exp(-(1.0 / (mgSq * L_ * L_)))
+			* exp(-mgSq * pow(L / 2000, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
+
+		h0minusk = clamp(sqrt((A / (mgSq * mgSq))								
+			* pow(dot(normalize(-k), normalize(windDirection)), 2) * pow(dot(normalize(-k), normalize(windDirection)), 2) * pow(dot(normalize(-k), normalize(windDirection)), 2)
+			* exp(-(1.0 / (mgSq * L_ * L_)))
+			* exp(-mgSq * pow(L / 2000, 2.0))) / sqrt(2.0), -4000.0, 4000.0);
+
+	}
 
 	vec4 gauss_randoms = gauss_random();
 

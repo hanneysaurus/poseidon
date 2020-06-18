@@ -32,7 +32,6 @@ void create_butterfly_texture();
 void create_fourier_components();
 void fft();
 void inversion();
-void choppyWaves();
 
 // loop functions
 void render();
@@ -54,9 +53,10 @@ const char* window_title = "Poseidon";
 
 // fft ocean parameters
 float A = 10;
-int L = 800;
+int L = 1000;
 glm::vec2 windDirection = glm::vec2(1.0f, 1.0f);
-float windSpeed = 10;
+float windSpeed = 40;
+bool choppy = false;
 
 // width and height of grid
 const int N = 256;
@@ -104,7 +104,6 @@ float t = 0.0f;
 int* bitReversedIndices;
 int pingpong_index = 0;
 const int log_2_N = (int)(log(N) / log(2));
-bool choppy = false;
 char pressed = ' ';
 
 // --------------------------------------------------------
@@ -129,7 +128,7 @@ int main(void)
     create_fourier_components();
     fft();
     inversion();
-
+    
 
     // CONNECT TO FRAGMENT SHADER
     // bind the resulting textures to fragment shader
@@ -154,19 +153,15 @@ int main(void)
     {
         glEnable(GL_BLEND);
 
-        currTime = glfwGetTime();
+        /*currTime = glfwGetTime();
         if (currTime - lastRefreshTime > 1 / 30)
         {
             t += 0.25;
             create_fourier_components();
             fft();
             inversion();
-            if (choppy)
-            {
-                choppyWaves();
-            }
             lastRefreshTime = currTime;
-        }
+        }*/
 
         render();
 
@@ -261,6 +256,7 @@ void create_h0k_h0minusk_textures() {
     programTildeHCompute.SetUniform1f("A", A);
     programTildeHCompute.SetUniform1f("windSpeed", windSpeed);
     programTildeHCompute.SetUniform1fv("windDirection", windDirection);
+    programTildeHCompute.SetUniform1i("choppy", choppy);
 
     // run the tildeHCompute shader to write to textures
     programTildeHCompute.compute(N, M);
@@ -360,76 +356,6 @@ void inversion()
 
     // run the shader to write to the pingpong textures
     programInversionCompute.compute(N, M);
-}
-
-void choppyWaves()
-{
-        // Dx-FFT
-        pingpong_index = 0;
-
-        // bind image units used in butterfly texture compute shader
-        glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-        glBindImageTexture(1, texture_fourier_component_dx.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-        glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
-        // one dimensional FFT in horizontal direction 
-        for (int stage = 0; stage < log_2_N; stage++)
-        {
-            programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 0, stage);
-            programButterflyCompute.compute(N, M);
-            glFinish();
-            pingpong_index = !pingpong_index;
-        }
-
-        // one dimensional FFT in vertical direction   
-        for (int stage = 0; stage < log_2_N; stage++)
-        {
-            programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 1, stage);
-            programButterflyCompute.compute(N, M);
-            glFinish();
-            pingpong_index = !pingpong_index;
-        }
-
-        programInversionCompute.bind();
-        programInversionCompute.SetUniform1i("pingpong", pingpong_index);
-        programInversionCompute.SetUniform1i("N", N);
-        glBindImageTexture(0, texture_fourier_component_dx.getID(), 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
-        programInversionCompute.dispatchCompute(N / 16, N / 16, 1);
-        glFinish();
-
-
-        // Dz-FFT
-        pingpong_index = 0;
-
-        // bind image units used in butterfly texture compute shader
-        glBindImageTexture(0, texture_butterfly.getID(), 0, false, 0, GL_READ_ONLY, GL_RGBA32F);
-        glBindImageTexture(1, texture_fourier_component_dz.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-        glBindImageTexture(2, texture_pingpong_1.getID(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
-        // one dimensional FFT in horizontal direction 
-        for (int stage = 0; stage < log_2_N; stage++)
-        {
-            programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 0, stage);
-            programButterflyCompute.compute(N, M);
-            glFinish();
-            pingpong_index = !pingpong_index;
-        }
-
-        // one dimensional FFT in vertical direction   
-        for (int stage = 0; stage < log_2_N; stage++)
-        {
-            programButterflyCompute.updateButterflyComputeUniforms(pingpong_index, 1, stage);
-            programButterflyCompute.compute(N, M);
-            glFinish();
-            pingpong_index = !pingpong_index;
-        }
-
-        programInversionCompute.bind();
-        programInversionCompute.SetUniform1i("pingpong", pingpong_index);
-        programInversionCompute.SetUniform1i("N", N);
-        glBindImageTexture(0, texture_fourier_component_dz.getID(), 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
-        programInversionCompute.dispatchCompute(N / 16, N / 16, 1);
-        glFinish();
 }
 
 // set up OpenGL, GLFW, GLEW
